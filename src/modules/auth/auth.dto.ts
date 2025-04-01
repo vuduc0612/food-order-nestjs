@@ -2,8 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString, Length, IsEnum } from 'class-validator';
 
 export enum UserRole {
-  CUSTOMER = 1,
-  RESTAURANT = 2
+  CUSTOMER = 'CUSTOMER',
+  RESTAURANT = 'RESTAURANT'
 }
 
 export class RegisterDto {

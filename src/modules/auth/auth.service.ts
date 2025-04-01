@@ -13,6 +13,8 @@ import {
   import { MailerProducer } from 'src/queue/producers/mailer.producer';
   import { Account } from '../account/entities/account.entities';
   import { AccountRole } from '../account_role/entities/account_role.entity';
+  import { User } from '../user/entities/user.entity';
+  import { Restaurant } from '../restaurant/entities/restaurant.entity';
   import {
     ForgotPasswordDto,
     LoginDto,
@@ -31,6 +33,10 @@ import {
       private readonly accountRepository: Repository<Account>,
       @InjectRepository(AccountRole)
       private readonly accountRoleRepository: Repository<AccountRole>,
+      @InjectRepository(User)
+      private readonly userRepository: Repository<User>,
+      @InjectRepository(Restaurant)
+      private readonly restaurantRepository: Repository<Restaurant>,
       private config: ConfigService,
       private jwt: JwtService,
       private readonly mailerProducer: MailerProducer,
@@ -47,7 +53,6 @@ import {
         );
       }
 
-      // Lấy role dựa trên code
       const roleCode = dto.role === UserRole.CUSTOMER ? 'CUSTOMER' : 'RESTAURANT';
       const role = await this.accountRoleRepository.findOne({
         where: { code: roleCode }
@@ -64,10 +69,23 @@ import {
         email: dto.email,
         password: hash,
         role_id: role.id,
+        user_role: dto.role,
         created_at: new Date(),
       });
   
-      await this.accountRepository.save(newAccount);
+      const savedAccount = await this.accountRepository.save(newAccount);
+
+      if (dto.role === UserRole.CUSTOMER) {
+        const newUser = this.userRepository.create({
+          account_id: savedAccount.id,
+        });
+        await this.userRepository.save(newUser);
+      } else if (dto.role === UserRole.RESTAURANT) {
+        const newRestaurant = this.restaurantRepository.create({
+          account_id: savedAccount.id,
+        });
+        await this.restaurantRepository.save(newRestaurant);
+      }
   
       const data = {
         to: dto.email,
@@ -75,7 +93,7 @@ import {
         text: 'Bạn đã đăng ký thành công',
       };
       await this.mailerProducer.sendMail(data);
-      return this.generateTokens(newAccount.id, newAccount.email, newAccount.role_id);
+      return this.generateTokens(savedAccount.id, savedAccount.email, savedAccount.role_id);
     }
   
     async login(dto: LoginDto, response: any) {
@@ -99,8 +117,7 @@ import {
       }
 
       // Kiểm tra role
-      const roleCode = dto.role === UserRole.CUSTOMER ? 'CUSTOMER' : 'RESTAURANT';
-      if (account.role.code !== roleCode) {
+      if (account.user_role !== dto.role) {
         throw new ForbiddenException(
           'Tài khoản này không có quyền đăng nhập với vai trò này!',
         );
@@ -121,7 +138,8 @@ import {
           id: account.id, 
           username: account.username, 
           email: account.email, 
-          role: account.role.code 
+          role: account.role.code,
+          user_role: account.user_role
         },
       };
     }
