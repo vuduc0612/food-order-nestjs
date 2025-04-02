@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+} from 'typeorm';
 import { Restaurant } from 'src/modules/restaurant/entities/restaurant.entity';
 import { Category } from 'src/modules/category/entities/category.entity';
 import { OrderDetail } from 'src/modules/order_detail/entities/order_detail.entity';
@@ -39,7 +46,7 @@ export class Dish {
 
   @Column({ type: 'datetime' })
   created_at: Date;
-  
+
   @OneToMany(() => OrderDetail, (orderDetail) => orderDetail.dish)
   orderDetails: OrderDetail[];
 }

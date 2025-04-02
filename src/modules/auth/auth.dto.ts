@@ -3,7 +3,7 @@ import { IsEmail, IsNotEmpty, IsString, Length, IsEnum } from 'class-validator';
 
 export enum UserRole {
   CUSTOMER = 1,
-  RESTAURANT = 2
+  RESTAURANT = 2,
 }
 
 export class RegisterDto {
@@ -22,11 +22,11 @@ export class RegisterDto {
   @Length(6, 50)
   password: string;
 
-  @ApiProperty({ 
-    example: UserRole.CUSTOMER, 
+  @ApiProperty({
+    example: UserRole.CUSTOMER,
     description: 'Vai trò người dùng',
     enum: UserRole,
-    default: UserRole.CUSTOMER 
+    default: UserRole.CUSTOMER,
   })
   @IsEnum(UserRole)
   role: UserRole;
@@ -43,25 +43,31 @@ export class LoginDto {
   @Length(6, 50)
   password: string;
 
-  @ApiProperty({ 
-    example: UserRole.CUSTOMER, 
+  @ApiProperty({
+    example: UserRole.CUSTOMER,
     description: 'Vai trò người dùng',
     enum: UserRole,
-    default: UserRole.CUSTOMER 
+    default: UserRole.CUSTOMER,
   })
   @IsEnum(UserRole)
   role: UserRole;
 }
 
 export class ForgotPasswordDto {
-  @ApiProperty({ example: 'user@example.com', description: 'Email để nhận OTP' })
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'Email để nhận OTP',
+  })
   @IsEmail()
   @IsNotEmpty()
   email: string;
 }
 
 export class VerifyOtpDto {
-  @ApiProperty({ example: 'user@example.com', description: 'Email đã nhận OTP' })
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'Email đã nhận OTP',
+  })
   @IsEmail()
   @IsNotEmpty()
   email: string;
@@ -73,7 +79,10 @@ export class VerifyOtpDto {
 }
 
 export class ResetPasswordDto {
-  @ApiProperty({ example: 'user@example.com', description: 'Email đã nhận OTP' })
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'Email đã nhận OTP',
+  })
   @IsEmail()
   @IsNotEmpty()
   email: string;

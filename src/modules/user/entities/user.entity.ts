@@ -20,7 +20,7 @@ export class User {
 
   @Column({ type: 'datetime' })
   created_at: Date;
-  
+
   @OneToMany(() => Order, (order) => order.user)
   orders: Order[];
 }

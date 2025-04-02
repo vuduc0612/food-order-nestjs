@@ -14,7 +14,7 @@ export class AccountRole {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   description: string;
-  
+
   @OneToMany(() => Account, (account) => account.role)
   accounts: Account[];
 }

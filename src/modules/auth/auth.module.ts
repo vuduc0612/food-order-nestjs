@@ -1,32 +1,39 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Account } from '../account/entities/account.entities';
 import { AccountRole } from '../account_role/entities/account_role.entity';
-import { JwtModule } from '@nestjs/jwt';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { BullModule } from '@nestjs/bull';
-import { MailerProducer } from 'src/queue/producers/mailer.producer';
+import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './guard/auth.guard';
+import { RolesGuard } from './guard/roles.guard';
 
 @Module({
   imports: [
-    ConfigModule,
-    TypeOrmModule.forFeature([Account, AccountRole]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '1d' },
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        signOptions: { expiresIn: configService.get('JWT_EXPIRES_IN') },
       }),
+      inject: [ConfigService],
     }),
-    BullModule.registerQueue({
-      name: 'mailer-queue',
-    }),
+    TypeOrmModule.forFeature([Account, AccountRole]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, MailerProducer, AuthGuard],
+  providers: [
+    AuthService,
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+  ],
+  exports: [AuthService],
 })
 export class AuthModule {}
