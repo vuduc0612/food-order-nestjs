@@ -1,4 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Order } from 'src/modules/order/entities/order.entity';
 import { Dish } from 'src/modules/dish/entities/dish.entity';
 
@@ -26,4 +32,7 @@ export class OrderDetail {
 
   @Column({ type: 'decimal' })
   price: number;
+
+  @Column({ type: 'text', nullable: true })
+  note: string;
 }

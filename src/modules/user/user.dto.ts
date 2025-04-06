@@ -35,9 +35,12 @@ export class UserResponseDto {
   @ApiProperty({ example: 'Hà Nội', description: 'Địa chỉ' })
   address: string;
 
-  @ApiProperty({ example: 'https://example.com/avatar.jpg', description: 'URL ảnh đại diện' })
+  @ApiProperty({
+    example: 'https://example.com/avatar.jpg',
+    description: 'URL ảnh đại diện',
+  })
   avatar: string;
 
   @ApiProperty({ example: 'user@example.com', description: 'Email' })
   email: string;
-} 
+}

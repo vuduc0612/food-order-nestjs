@@ -1,10 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString, Length, IsEnum } from 'class-validator';
-
-export enum UserRole {
-  CUSTOMER = 'CUSTOMER',
-  RESTAURANT = 'RESTAURANT'
-}
+import { RoleType } from '../account_role/enums/role-type.enum';
 
 export class RegisterDto {
   @ApiProperty({ example: 'Nguyen Van A', description: 'Tên người dùng' })
@@ -22,14 +18,14 @@ export class RegisterDto {
   @Length(6, 50)
   password: string;
 
-  @ApiProperty({ 
-    example: UserRole.CUSTOMER, 
+  @ApiProperty({
+    example: RoleType.CUSTOMER,
     description: 'Vai trò người dùng',
-    enum: UserRole,
-    default: UserRole.CUSTOMER 
+    enum: RoleType,
+    default: RoleType.CUSTOMER,
   })
-  @IsEnum(UserRole)
-  role: UserRole;
+  @IsEnum(RoleType)
+  role: RoleType;
 }
 
 export class LoginDto {
@@ -43,25 +39,31 @@ export class LoginDto {
   @Length(6, 50)
   password: string;
 
-  @ApiProperty({ 
-    example: UserRole.CUSTOMER, 
+  @ApiProperty({
+    example: RoleType.CUSTOMER,
     description: 'Vai trò người dùng',
-    enum: UserRole,
-    default: UserRole.CUSTOMER 
+    enum: RoleType,
+    default: RoleType.CUSTOMER,
   })
-  @IsEnum(UserRole)
-  role: UserRole;
+  @IsEnum(RoleType)
+  role: RoleType;
 }
 
 export class ForgotPasswordDto {
-  @ApiProperty({ example: 'user@example.com', description: 'Email để nhận OTP' })
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'Email để nhận OTP',
+  })
   @IsEmail()
   @IsNotEmpty()
   email: string;
 }
 
 export class VerifyOtpDto {
-  @ApiProperty({ example: 'user@example.com', description: 'Email đã nhận OTP' })
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'Email đã nhận OTP',
+  })
   @IsEmail()
   @IsNotEmpty()
   email: string;
@@ -73,7 +75,10 @@ export class VerifyOtpDto {
 }
 
 export class ResetPasswordDto {
-  @ApiProperty({ example: 'user@example.com', description: 'Email đã nhận OTP' })
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'Email đã nhận OTP',
+  })
   @IsEmail()
   @IsNotEmpty()
   email: string;

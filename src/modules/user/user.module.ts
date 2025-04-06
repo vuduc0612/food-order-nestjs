@@ -11,7 +11,7 @@ import { CloudinaryModule } from 'src/base/cloudinary/cloudinary.module';
   imports: [
     TypeOrmModule.forFeature([User, Account]),
     AuthModule,
-    CloudinaryModule
+    CloudinaryModule,
   ],
   controllers: [UserController],
   providers: [UserService],

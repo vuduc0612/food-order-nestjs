@@ -7,10 +7,7 @@ import { AuthModule } from '../auth/auth.module';
 import { Account } from '../account/entities/account.entities';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Restaurant, Account]),
-    AuthModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Restaurant, Account]), AuthModule],
   controllers: [RestaurantController],
   providers: [RestaurantService],
   exports: [RestaurantService],

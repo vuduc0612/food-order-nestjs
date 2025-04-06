@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+} from 'typeorm';
 import { User } from 'src/modules/user/entities/user.entity';
 import { Restaurant } from 'src/modules/restaurant/entities/restaurant.entity';
 import { OrderDetail } from 'src/modules/order_detail/entities/order_detail.entity';
@@ -28,8 +35,14 @@ export class Order {
   @Column({ type: 'varchar', length: 255 })
   status: string;
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'text', nullable: true })
+  note: string;
+
+  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
+
+  @Column({ type: 'datetime', nullable: true })
+  updated_at: Date;
 
   @OneToMany(() => OrderDetail, (orderDetail) => orderDetail.order)
   orderDetails: OrderDetail[];

@@ -1,10 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsEnum } from 'class-validator';
+import { RoleType } from './enums/role-type.enum';
 
 export class CreateAccountRoleDto {
-  @ApiProperty({ example: 'ADMIN', description: 'Mã vai trò' })
-  @IsString()
-  code: string;
+  @ApiProperty({
+    example: RoleType.ADMIN,
+    description: 'Mã vai trò',
+    enum: RoleType,
+  })
+  @IsEnum(RoleType)
+  code: RoleType;
 
   @ApiProperty({ example: 'Quản trị viên', description: 'Tên vai trò' })
   @IsString()
@@ -17,11 +22,26 @@ export class CreateAccountRoleDto {
 }
 
 export class UpdateAccountRoleDto {
-  @ApiProperty({ example: 'Quản trị viên', description: 'Tên vai trò' })
-  @IsString()
-  name: string;
+  @ApiProperty({
+    example: RoleType.ADMIN,
+    description: 'Mã vai trò',
+    enum: RoleType,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(RoleType)
+  code?: RoleType;
 
-  @ApiProperty({ example: 'Mô tả cập nhật', required: false })
+  @ApiProperty({
+    example: 'Quản trị viên',
+    description: 'Tên vai trò',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiProperty({ example: 'Người quản lý toàn hệ thống', required: false })
   @IsOptional()
   @IsString()
   description?: string;
