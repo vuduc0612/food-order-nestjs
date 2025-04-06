@@ -35,8 +35,14 @@ export class Order {
   @Column({ type: 'varchar', length: 255 })
   status: string;
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'text', nullable: true })
+  note: string;
+
+  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
+
+  @Column({ type: 'datetime', nullable: true })
+  updated_at: Date;
 
   @OneToMany(() => OrderDetail, (orderDetail) => orderDetail.order)
   orderDetails: OrderDetail[];

@@ -1,52 +1,46 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional } from 'class-validator';
-
-export class CreateUserDto {
-  @ApiProperty({ example: 'Nguyễn Văn A', description: 'Full name' })
-  @IsString()
-  full_name: string;
-
-  @ApiProperty({ example: 'user@example.com', description: 'Email' })
-  @IsString()
-  email: string;
-
-  @ApiProperty({ example: '0123456789', required: false })
-  @IsOptional()
-  @IsString()
-  phone?: string;
-
-  @ApiProperty({ example: '123 Main St', description: 'Address' })
-  @IsString()
-  address: string;
-
-  @ApiProperty({ example: '2025-03-27', description: 'Created at' })
-  @IsString()
-  created_at: Date;
-}
+import { IsEmail, IsOptional, IsString, Length } from 'class-validator';
 
 export class UpdateUserDto {
-  @ApiProperty({ required: false })
-  @IsOptional()
+  @ApiProperty({ example: 'Nguyen Van A', description: 'Họ tên người dùng' })
   @IsString()
+  @IsOptional()
   full_name?: string;
 
-  @ApiProperty({ required: false })
-  @IsOptional()
+  @ApiProperty({ example: '0987654321', description: 'Số điện thoại' })
   @IsString()
-  email?: string;
-
-  @ApiProperty({ required: false })
   @IsOptional()
-  @IsString()
+  @Length(10, 20)
   phone?: string;
 
-  @ApiProperty({ required: false })
-  @IsOptional()
+  @ApiProperty({ example: 'Hà Nội', description: 'Địa chỉ' })
   @IsString()
+  @IsOptional()
   address?: string;
+}
 
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  created_at?: Date;
+export class UserResponseDto {
+  @ApiProperty({ example: 1, description: 'ID người dùng' })
+  id: number;
+
+  @ApiProperty({ example: 1, description: 'ID tài khoản' })
+  account_id: number;
+
+  @ApiProperty({ example: 'Nguyen Van A', description: 'Họ tên người dùng' })
+  full_name: string;
+
+  @ApiProperty({ example: '0987654321', description: 'Số điện thoại' })
+  phone: string;
+
+  @ApiProperty({ example: 'Hà Nội', description: 'Địa chỉ' })
+  address: string;
+
+  @ApiProperty({
+    example: 'https://example.com/avatar.jpg',
+    description: 'URL ảnh đại diện',
+  })
+  avatar: string;
+
+  @ApiProperty({ example: 'user@example.com', description: 'Email' })
+  email: string;
 }

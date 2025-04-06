@@ -32,4 +32,7 @@ export class OrderDetail {
 
   @Column({ type: 'decimal' })
   price: number;
+
+  @Column({ type: 'text', nullable: true })
+  note: string;
 }
