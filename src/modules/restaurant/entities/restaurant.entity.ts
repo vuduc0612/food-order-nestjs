@@ -21,10 +21,10 @@ export class Restaurant {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   image_url: string;
-  
+
   @OneToMany(() => Dish, (dish) => dish.restaurant)
   dishes: Dish[];
-  
+
   @OneToMany(() => Order, (order) => order.restaurant)
   orders: Order[];
 }

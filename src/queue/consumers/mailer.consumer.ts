@@ -11,7 +11,9 @@ export class MailerConsumer {
   constructor(private readonly mailerService: MailerService) {}
 
   @Process('send-mail')
-  async handleSendMail(job: Job<{ to: string; subject: string; text: string }>) {
+  async handleSendMail(
+    job: Job<{ to: string; subject: string; text: string }>,
+  ) {
     const { to, subject, text } = job.data;
 
     try {

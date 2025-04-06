@@ -11,7 +11,7 @@ export class Category {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   image_url: string;
-  
+
   @OneToMany(() => Dish, (dish) => dish.category)
   dishes: Dish[];
 }

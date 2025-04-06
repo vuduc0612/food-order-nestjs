@@ -4,6 +4,6 @@ import { AccountRoleService } from './account_role.service';
 
 @Module({
   controllers: [AccountRoleController],
-  providers: [AccountRoleService]
+  providers: [AccountRoleService],
 })
 export class AccountRoleModule {}
