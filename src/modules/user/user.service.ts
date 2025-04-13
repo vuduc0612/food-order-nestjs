@@ -17,6 +17,7 @@ export class UserService {
   async findById(id: number): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id },
+      relations: ['account'],
     });
 
     if (!user) {
@@ -38,7 +39,8 @@ export class UserService {
 
     Object.assign(user, updateUserDto);
 
-    return this.userRepository.save(user);
+    const updatedUser = await this.userRepository.save(user);
+    return this.findById(updatedUser.id);
   }
 
   async updateAvatar(id: number, avatarUrl: string): Promise<User> {
@@ -46,21 +48,33 @@ export class UserService {
 
     user.avatar = avatarUrl;
 
-    return this.userRepository.save(user);
+    const updatedUser = await this.userRepository.save(user);
+    return this.findById(updatedUser.id);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number, accountId: number): Promise<void> {
     const user = await this.findById(id);
+
+    if (!user.account || user.account.id !== accountId) {
+      throw new NotFoundException(
+        'Bạn không có quyền xóa thông tin người dùng này',
+      );
+    }
 
     await this.userRepository.remove(user);
   }
 
   async getCurrentUser(accountId: number): Promise<UserResponseDto> {
     const user = await this.findByAccountId(accountId);
-    console.log('User:', user);
     if (!user) {
       throw new NotFoundException(
         `User with account ID ${accountId} not found`,
+      );
+    }
+
+    if (!user.account) {
+      throw new NotFoundException(
+        `Account not found for user with ID ${user.id}`,
       );
     }
 

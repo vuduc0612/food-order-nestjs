@@ -9,6 +9,9 @@ import {
   UpdateCartItemDto,
 } from './dto/cart.dto';
 import { DishService } from '../dish/dish.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Dish } from '../dish/entities/dish.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class CartService {
@@ -16,6 +19,8 @@ export class CartService {
 
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @InjectRepository(Dish)
+    private readonly dishRepository: Repository<Dish>,
     private readonly dishService: DishService,
   ) {}
 
@@ -52,7 +57,7 @@ export class CartService {
 
     // Fetch dish details for each item to get current price
     for (const item of addToCartDto.items) {
-      const dish = await this.dishService.findOne(item.dishId);
+      const dish = await this.dishService.getDishById(item.dishId);
       if (!dish) {
         throw new NotFoundException(`Dish with ID ${item.dishId} not found`);
       }

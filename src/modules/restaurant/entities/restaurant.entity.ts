@@ -31,6 +31,9 @@ export class Restaurant {
   @Column({ type: 'varchar', length: 255, nullable: true })
   image_url: string;
 
+  @Column({ name: 'account_id', type: 'int' })
+  accountId: number;
+
   @OneToOne(() => Account, (account) => account.restaurant)
   @JoinColumn({ name: 'account_id' })
   account: Account;

@@ -4,14 +4,14 @@ import { AuthController } from './auth.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Account } from '../account/entities/account.entities';
 import { AccountRole } from '../account_role/entities/account_role.entity';
+import { User } from '../user/entities/user.entity';
+import { Restaurant } from '../restaurant/entities/restaurant.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
 import { MailerProducer } from '../../queue/producers/mailer.producer';
 import { AuthGuard } from './guard/auth.guard';
 import { RolesGuard } from './guard/roles.guard';
-import { User } from '../user/entities/user.entity';
-import { Restaurant } from '../restaurant/entities/restaurant.entity';
 
 @Module({
   imports: [

@@ -2,28 +2,31 @@ import {
   Entity,
   Column,
   PrimaryGeneratedColumn,
-  OneToMany,
   ManyToOne,
-  JoinColumn,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
-import { Dish } from 'src/modules/dish/entities/dish.entity';
-import { Restaurant } from 'src/modules/restaurant/entities/restaurant.entity';
+import { Restaurant } from '../../restaurant/entities/restaurant.entity';
+import { Dish } from '../../dish/entities/dish.entity';
 
 @Entity('categories')
 export class Category {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column()
   name: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  image_url: string;
+  @ManyToOne(() => Restaurant, (restaurant) => restaurant.category)
+  restaurant: Restaurant;
 
   @OneToMany(() => Dish, (dish) => dish.category)
   dishes: Dish[];
 
-  @ManyToOne(() => Restaurant, (restaurant) => restaurant.category)
-  @JoinColumn({ name: 'restaurant_id' })
-  restaurant: Restaurant;
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }

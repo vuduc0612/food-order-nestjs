@@ -68,6 +68,22 @@ export class AuthService {
         roleType: dto.role,
       });
       await this.accountRoleRepository.save(roleEntity);
+
+      // Thêm bản ghi vào bảng tương ứng với role mới
+      if (dto.role === RoleType.CUSTOMER) {
+        const newUser = this.userRepository.create({
+          account: existingAccount,
+        });
+        newUser.fullName = dto.name;
+        await this.userRepository.save(newUser);
+      } else if (dto.role === RoleType.RESTAURANT) {
+        const newRestaurant = this.restaurantRepository.create({
+          account: existingAccount,
+        });
+        newRestaurant.name = dto.name;
+        await this.restaurantRepository.save(newRestaurant);
+      }
+
       return {
         message: 'Tài khoản đã tồn tại, thêm vai trò thành công',
         status: 'success',
@@ -125,55 +141,53 @@ export class AuthService {
     });
 
     if (!account) {
+      throw new NotFoundException('Email không tồn tại');
+    }
+
+    const isPasswordValid = await argon2.verify(account.password, dto.password);
+
+    if (!isPasswordValid) {
+      throw new BadRequestException('Mật khẩu không đúng');
+    }
+
+    // Kiểm tra xem tài khoản có role mà người dùng đang cố gắng đăng nhập không
+    const hasRequestedRole = account.roles.some(
+      (role) => role.roleType === dto.role,
+    );
+    if (!hasRequestedRole) {
       throw new ForbiddenException(
-        'Sai tài khoản hoặc mật khẩu! Vui lòng đăng nhập lại.',
+        'Bạn không có quyền đăng nhập với vai trò này',
       );
     }
 
-    const pwMatch = await argon2.verify(account.password, dto.password);
+    // Cập nhật thời gian đăng nhập cuối cùng
+    account.last_login = new Date();
+    await this.accountRepository.save(account);
 
-    if (!pwMatch) {
-      throw new ForbiddenException(
-        'Sai tài khoản hoặc mật khẩu! Vui lòng đăng nhập lại.',
-      );
-    }
-
-    // Lấy danh sách role dưới dạng string[]
-    const roleTypes = account.roles.map((r) => r.roleType);
-
-    // Kiểm tra nếu vai trò yêu cầu không có trong tài khoản
-    if (!roleTypes.includes(dto.role)) {
-      throw new ForbiddenException(
-        'Tài khoản này không có quyền đăng nhập với vai trò này!',
-      );
-    }
-
-    // Tạo tokens
+    // Tạo token chỉ với role được chọn để đăng nhập
     const tokens = await this.generateTokens(
       account.id,
       account.email,
-      roleTypes,
+      dto.role,
     );
 
-    // Gửi refresh token vào cookie
     response.cookie('refresh_token', tokens.refresh_token, {
       httpOnly: true,
-      secure: this.config.get('NODE_ENV') === 'production',
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     return {
-      status: 'success',
-      message: 'Đăng nhập thành công',
       access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
+      message: 'Đăng nhập thành công',
     };
   }
 
   async generateTokens(
     id: number,
     email: string,
-    roles: RoleType[],
+    role: RoleType,
   ): Promise<{
     access_token: string;
     refresh_token: string;
@@ -181,7 +195,7 @@ export class AuthService {
     const payload = {
       sub: id,
       email: email,
-      roles: roles, // mảng RoleType (string[])
+      role: role, // Sử dụng role được truyền vào
     };
 
     const secret = this.config.get('JWT_SECRET');

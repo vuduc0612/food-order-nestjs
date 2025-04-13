@@ -1,25 +1,26 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
 
 export class CreateCategoryDto {
-  @ApiProperty({ example: '', description: 'Name' })
+  @ApiProperty({ example: 'Món chính', description: 'Tên danh mục' })
   @IsString()
   name: string;
-
-  @ApiProperty({ example: '', description: 'Image URL', required: false })
-  @IsOptional()
-  @IsString()
-  image_url?: string;
 }
 
 export class UpdateCategoryDto {
-  @ApiProperty({ example: '', description: 'Name', required: false })
-  @IsOptional()
+  @ApiProperty({ example: 'Món chính', description: 'Tên danh mục' })
   @IsString()
+  @IsOptional()
   name?: string;
+}
 
-  @ApiProperty({ example: '', description: 'Image URL', required: false })
-  @IsOptional()
-  @IsString()
-  image_url?: string;
+export class CategoryResponseDto {
+  @ApiProperty({ example: 1, description: 'ID của danh mục' })
+  id: number;
+
+  @ApiProperty({ example: 1, description: 'ID của nhà hàng' })
+  restaurant_id: number;
+
+  @ApiProperty({ example: 'Món chính', description: 'Tên danh mục' })
+  name: string;
 }
