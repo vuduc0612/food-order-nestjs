@@ -39,19 +39,11 @@ export class AuthGuard implements CanActivate {
     try {
       const decoded = jwt.verify(token, this.config.get('JWT_SECRET')) as any;
 
-      const account = await this.accountRepository.findOne({
-        where: { email: decoded.email },
-        relations: ['roles'],
-      });
-
-      if (!account) {
-        throw new UnauthorizedException('Tài khoản không tồn tại');
-      }
-
+      // Sử dụng thông tin trực tiếp từ token
       request.user = {
-        id: account.id,
-        email: account.email,
-        roles: account.roles.map((r) => r.roleType),
+        id: decoded.sub,
+        email: decoded.email,
+        role: decoded.role, // Đơn giản hóa, chỉ sử dụng role từ token
       };
 
       return true;

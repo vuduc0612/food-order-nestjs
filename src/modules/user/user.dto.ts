@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, Length } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Length, Matches } from 'class-validator';
 
 export class UpdateUserDto {
   @ApiProperty({ example: 'Nguyen Van A', description: 'Họ tên người dùng' })
@@ -11,6 +11,7 @@ export class UpdateUserDto {
   @IsString()
   @IsOptional()
   @Length(10, 20)
+  @Matches(/^[0-9+]+$/, { message: 'Số điện thoại chỉ được chứa số và dấu +' })
   phone?: string;
 
   @ApiProperty({ example: 'Hà Nội', description: 'Địa chỉ' })

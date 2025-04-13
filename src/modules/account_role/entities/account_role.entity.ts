@@ -27,6 +27,9 @@ export class AccountRole {
   @Column({ type: 'varchar', length: 255, nullable: true })
   description: string;
 
+  @Column({ name: 'account_id', type: 'int' })
+  accountId: number;
+
   @ManyToOne(() => Account, (account) => account.roles)
   @JoinColumn({ name: 'account_id' })
   account: Account;

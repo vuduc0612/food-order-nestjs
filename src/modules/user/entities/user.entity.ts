@@ -26,6 +26,9 @@ export class User {
   @Column({ type: 'varchar', length: 500, nullable: true })
   avatar: string;
 
+  @Column({ name: 'account_id', type: 'int' })
+  accountId: number;
+
   @OneToMany(() => Order, (order) => order.user)
   orders: Order[];
 

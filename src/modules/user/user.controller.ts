@@ -12,6 +12,7 @@ import {
   UseInterceptors,
   UploadedFile,
   Req,
+  NotFoundException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthGuard } from '../auth/guard/auth.guard';
@@ -35,6 +36,7 @@ import { UpdateUserDto, UserResponseDto } from './user.dto';
 
 @ApiTags('Users')
 @ApiBearerAuth()
+@UseGuards(AuthGuard, RolesGuard)
 @Controller('users')
 export class UserController {
   constructor(
@@ -71,29 +73,66 @@ export class UserController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Cập nhật thông tin người dùng' })
+  @ApiOperation({ summary: 'Cập nhật thông tin và/hoặc ảnh đại diện người dùng' })
   @ApiParam({ name: 'id', description: 'ID của người dùng' })
-  @ApiBody({ type: UpdateUserDto })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        full_name: { type: 'string', example: 'Nguyen Van A' },
+        phone: { type: 'string', example: '0987654321' },
+        address: { type: 'string', example: 'Hà Nội' },
+        avatar: { 
+          type: 'string', 
+          format: 'binary',
+          description: 'File ảnh đại diện' 
+        },
+      },
+    },
+  })
   @ApiResponse({
     status: 200,
     description: 'Thông tin người dùng sau khi cập nhật',
     type: UserResponseDto,
   })
+  @UseInterceptors(FileInterceptor('avatar'))
   @Roles(RoleType.CUSTOMER)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
+    @UploadedFile() file: Multer.File,
     @Req() req,
   ) {
     // Kiểm tra người dùng chỉ có thể cập nhật thông tin của chính mình
     const user = await this.userService.findById(id);
+    if (!user.account) {
+      throw new NotFoundException(`Account not found for user with ID ${user.id}`);
+    }
     if (user.account.id !== req.user.id) {
-      throw new BadRequestException(
-        'Bạn không có quyền cập nhật thông tin này',
-      );
+      throw new BadRequestException('Bạn không có quyền cập nhật thông tin này');
     }
 
-    return this.userService.update(id, updateUserDto);
+    // Cập nhật thông tin
+    let updatedUser = user;
+    
+    // Nếu có dữ liệu cập nhật
+    if (Object.keys(updateUserDto).length > 0) {
+      updatedUser = await this.userService.update(id, updateUserDto);
+    }
+    
+    // Nếu có file ảnh
+    if (file) {
+      try {
+        const cloudinaryResponse = await this.cloudinaryService.uploadImage(file);
+        const avatarUrl = cloudinaryResponse.secure_url;
+        updatedUser = await this.userService.updateAvatar(id, avatarUrl);
+      } catch (error) {
+        throw new BadRequestException(`Không thể tải lên ảnh: ${error.message}`);
+      }
+    }
+
+    return updatedUser;
   }
 
   @Delete(':id')
@@ -105,67 +144,7 @@ export class UserController {
   })
   @Roles(RoleType.CUSTOMER)
   async remove(@Param('id', ParseIntPipe) id: number, @Req() req) {
-    // Kiểm tra người dùng chỉ có thể xóa chính mình
-    const user = await this.userService.findById(id);
-    if (user.account.id !== req.user.id) {
-      throw new BadRequestException('Bạn không có quyền xóa thông tin này');
-    }
-
-    await this.userService.remove(id);
+    await this.userService.remove(id, req.user.id);
     return { message: 'Người dùng đã được xóa thành công' };
-  }
-
-  @Post(':id/upload-avatar')
-  @ApiOperation({ summary: 'Upload ảnh đại diện cho người dùng' })
-  @ApiParam({ name: 'id', description: 'ID của người dùng' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    description: 'File ảnh đại diện',
-    schema: {
-      type: 'object',
-      properties: {
-        avatar: {
-          type: 'string',
-          format: 'binary',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Ảnh đại diện đã được cập nhật thành công',
-  })
-  @UseInterceptors(FileInterceptor('avatar'))
-  @Roles(RoleType.CUSTOMER)
-  async uploadAvatar(
-    @Param('id', ParseIntPipe) id: number,
-    @UploadedFile() file: Multer.File,
-    @Req() req,
-  ) {
-    if (!file) {
-      throw new BadRequestException('Không có file nào được tải lên');
-    }
-
-    // Kiểm tra người dùng chỉ có thể cập nhật ảnh đại diện của chính mình
-    const user = await this.userService.findById(id);
-    if (user.account.id !== req.user.id) {
-      throw new BadRequestException(
-        'Bạn không có quyền cập nhật ảnh đại diện này',
-      );
-    }
-
-    try {
-      const cloudinaryResponse = await this.cloudinaryService.uploadImage(file);
-      const avatarUrl = cloudinaryResponse.secure_url;
-
-      const updatedUser = await this.userService.updateAvatar(id, avatarUrl);
-
-      return {
-        message: 'Ảnh đại diện đã được cập nhật thành công',
-        data: updatedUser,
-      };
-    } catch (error) {
-      throw new BadRequestException(`Không thể tải lên ảnh: ${error.message}`);
-    }
   }
 }
