@@ -6,6 +6,9 @@ import { redisStore } from 'cache-manager-redis-store';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DishModule } from '../dish/dish.module';
 import { UserModule } from '../user/user.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Dish } from '../dish/entities/dish.entity';
+import { Account } from '../account/entities/account.entities';
 
 @Module({
   imports: [
@@ -20,6 +23,7 @@ import { UserModule } from '../user/user.module';
         max: 100, // maximum number of items in cache
       }),
     }),
+    TypeOrmModule.forFeature([Dish, Account]), // Add this to make Dish repository available
     DishModule, // Import DishModule để sử dụng DishService
     UserModule, // Import UserModule để sử dụng UserService
   ],
