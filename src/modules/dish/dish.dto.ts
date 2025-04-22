@@ -9,16 +9,28 @@ import {
 import { Transform, Type } from 'class-transformer';
 
 export class DishDto {
-  @ApiProperty({ example: 1, description: 'ID món ăn' })
+  @ApiProperty({ 
+    example: 1, 
+    description: 'ID món ăn' 
+  })
   id: number;
 
-  @ApiProperty({ example: 'Phở bò', description: 'Tên món ăn' })
+  @ApiProperty({ 
+    example: 'Phở bò', 
+    description: 'Tên món ăn' 
+  })
   name: string;
 
-  @ApiProperty({ example: 'Món phở truyền thống', description: 'Mô tả món ăn' })
+  @ApiProperty({ 
+    example: 'Món phở truyền thống', 
+    description: 'Mô tả món ăn' 
+  })
   description: string;
 
-  @ApiProperty({ example: 50000, description: 'Giá món ăn' })
+  @ApiProperty({ 
+    example: 50000, 
+    description: 'Giá món ăn' 
+  })
   price: number;
 
   @ApiProperty({
@@ -27,26 +39,42 @@ export class DishDto {
   })
   thumbnail: string;
 
-  @ApiProperty({ example: 'Món chính', description: 'Tên danh mục' })
+  @ApiProperty({ 
+    example: 'Món chính', 
+    description: 'Tên danh mục' 
+  })
   category: string;
 
-  @ApiProperty({ example: 1, description: 'ID nhà hàng' })
+  @ApiProperty({ 
+    example: 1, 
+    description: 'ID nhà hàng' 
+  })
   restaurantId: number;
 }
 
 export class CreateDishDto {
-  @ApiProperty({ example: 'Phở bò', description: 'Tên món ăn' })
+  @ApiProperty({ 
+    example: 'Phở bò', 
+    description: 'Tên món ăn' 
+  })
   @IsString()
   name: string;
 
-  @ApiProperty({ example: 'Món phở truyền thống', description: 'Mô tả món ăn' })
+  @ApiProperty({ 
+    example: 'Món phở truyền thống', 
+    description: 'Mô tả món ăn' 
+  })
   @IsString()
   description: string;
 
-  @ApiProperty({ example: 50000, description: 'Giá món ăn' })
+  @ApiProperty({ 
+    example: 50000, 
+    description: 'Giá món ăn' 
+  })
   @Transform(({ value }) => {
     if (typeof value === 'string') {
-      return parseFloat(value);
+      const parsedValue = parseFloat(value);
+      return parsedValue;
     }
     return value;
   })
@@ -54,7 +82,10 @@ export class CreateDishDto {
   @Min(0)
   price: number;
 
-  @ApiProperty({ example: 'Món chính', description: 'Tên danh mục' })
+  @ApiProperty({ 
+    example: 'Món chính', 
+    description: 'Tên danh mục' 
+  })
   @IsString()
   category: string;
 
@@ -87,15 +118,22 @@ export class UpdateDishDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ example: 50000, description: 'Giá món ăn', required: false })
+  @ApiProperty({ 
+    example: 50000, 
+    description: 'Giá món ăn', 
+    required: false 
+  })
   @IsOptional()
   @Transform(({ value }) => {
     if (value === undefined || value === null) {
       return value;
     }
+    
     if (typeof value === 'string') {
-      return parseFloat(value);
+      const parsedNumericValue = parseFloat(value);
+      return parsedNumericValue;
     }
+    
     return value;
   })
   @IsNumber()
@@ -122,18 +160,32 @@ export class UpdateDishDto {
 }
 
 export class PageDto<T> {
-  @ApiProperty({ description: 'Dữ liệu trả về' })
+  @ApiProperty({ 
+    description: 'Dữ liệu trả về' 
+  })
   content: T[];
 
-  @ApiProperty({ example: 1, description: 'Trang hiện tại' })
+  @ApiProperty({ 
+    example: 1, 
+    description: 'Trang hiện tại' 
+  })
   number: number;
 
-  @ApiProperty({ example: 10, description: 'Số lượng item trên một trang' })
+  @ApiProperty({ 
+    example: 10, 
+    description: 'Số lượng item trên một trang' 
+  })
   size: number;
 
-  @ApiProperty({ example: 100, description: 'Tổng số item' })
+  @ApiProperty({ 
+    example: 100, 
+    description: 'Tổng số item' 
+  })
   totalElements: number;
 
-  @ApiProperty({ example: 10, description: 'Tổng số trang' })
+  @ApiProperty({ 
+    example: 10, 
+    description: 'Tổng số trang' 
+  })
   totalPages: number;
 }
