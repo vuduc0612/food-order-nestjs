@@ -2,8 +2,10 @@ import {
   Entity,
   Column,
   PrimaryGeneratedColumn,
-  OneToOne,
+  ManyToOne,
+  JoinColumn,
   OneToMany,
+  OneToOne,
 } from 'typeorm';
 import { AccountRole } from 'src/modules/account_role/entities/account_role.entity';
 import { Restaurant } from 'src/modules/restaurant/entities/restaurant.entity';

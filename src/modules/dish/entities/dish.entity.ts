@@ -5,11 +5,9 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
 } from 'typeorm';
-import { Restaurant } from '../../restaurant/entities/restaurant.entity';
-import { Category } from '../../category/entities/category.entity';
+import { Restaurant } from 'src/modules/restaurant/entities/restaurant.entity';
+import { Category } from 'src/modules/category/entities/category.entity';
 import { OrderDetail } from 'src/modules/order_detail/entities/order_detail.entity';
 
 @Entity('dishes')
@@ -37,17 +35,17 @@ export class Dish {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column({ type: 'decimal' })
   price: number;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  thumbnail: string;
+  image_url: string;
 
-  @CreateDateColumn()
+  @Column({ type: 'boolean' })
+  is_available: boolean;
+
+  @Column({ type: 'datetime' })
   created_at: Date;
-
-  @UpdateDateColumn()
-  updated_at: Date;
 
   @OneToMany(() => OrderDetail, (orderDetail) => orderDetail.dish)
   orderDetails: OrderDetail[];

@@ -1,21 +1,9 @@
-import { Module, forwardRef } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Category } from './entities/category.entity';
-import { CategoryService } from './category.service';
+import { Module } from '@nestjs/common';
 import { CategoryController } from './category.controller';
-import { RestaurantModule } from '../restaurant/restaurant.module';
-import { Restaurant } from '../restaurant/entities/restaurant.entity';
-import { AccountModule } from '../account/account.module';
-import { Account } from '../account/entities/account.entities';
+import { CategoryService } from './category.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Category, Restaurant, Account]),
-    forwardRef(() => RestaurantModule),
-    AccountModule,
-  ],
   controllers: [CategoryController],
   providers: [CategoryService],
-  exports: [CategoryService],
 })
 export class CategoryModule {}

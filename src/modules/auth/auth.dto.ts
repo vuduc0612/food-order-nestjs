@@ -1,6 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString, Length, IsEnum } from 'class-validator';
-import { RoleType } from '../account_role/enums/role-type.enum';
+
+export enum UserRole {
+  CUSTOMER = 1,
+  RESTAURANT = 2,
+}
 
 export class RegisterDto {
   @ApiProperty({ example: 'Nguyen Van A', description: 'Tên người dùng' })
@@ -19,13 +23,13 @@ export class RegisterDto {
   password: string;
 
   @ApiProperty({
-    example: RoleType.CUSTOMER,
+    example: UserRole.CUSTOMER,
     description: 'Vai trò người dùng',
-    enum: RoleType,
-    default: RoleType.CUSTOMER,
+    enum: UserRole,
+    default: UserRole.CUSTOMER,
   })
-  @IsEnum(RoleType)
-  role: RoleType;
+  @IsEnum(UserRole)
+  role: UserRole;
 }
 
 export class LoginDto {
@@ -40,13 +44,13 @@ export class LoginDto {
   password: string;
 
   @ApiProperty({
-    example: RoleType.CUSTOMER,
+    example: UserRole.CUSTOMER,
     description: 'Vai trò người dùng',
-    enum: RoleType,
-    default: RoleType.CUSTOMER,
+    enum: UserRole,
+    default: UserRole.CUSTOMER,
   })
-  @IsEnum(RoleType)
-  role: RoleType;
+  @IsEnum(UserRole)
+  role: UserRole;
 }
 
 export class ForgotPasswordDto {

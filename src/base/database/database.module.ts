@@ -13,30 +13,27 @@ import { User } from 'src/modules/user/entities/user.entity';
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({
-      useFactory: (config: ConfigService) => {
-        return {
-          type: 'mysql',
-          host: config.getOrThrow('DB_HOST'),
-          port: parseInt(config.getOrThrow('DB_PORT'), 10),
-          username: config.getOrThrow('DB_USERNAME'),
-          password: config.getOrThrow('DB_PASSWORD'),
-          database: config.getOrThrow('DB_NAME'),
-          entities: [
-            User,
-            Order,
-            Account,
-            AccountRole,
-            Category,
-            Dish,
-            OrderDetail,
-            Restaurant,
-          ],
-          synchronize: true,
-          dropSchema: false,
-          charset: 'utf8mb4',
-          ssl: false,
-        };
-      },
+      useFactory: (configService: ConfigService) => ({
+        type: 'mysql',
+        host: configService.getOrThrow('DB_HOST'),
+        port: parseInt(configService.getOrThrow('DB_PORT'), 10),
+        username: configService.getOrThrow('DB_USERNAME'),
+        password: configService.getOrThrow('DB_PASSWORD'),
+        database: configService.getOrThrow('DB_NAME'),
+        entities: [
+          User,
+          Order,
+          Account,
+          AccountRole,
+          Category,
+          Dish,
+          OrderDetail,
+          Restaurant,
+        ],
+        synchronize: true,
+        charset: 'utf8mb4',
+        ssl: false,
+      }),
       inject: [ConfigService],
     }),
   ],

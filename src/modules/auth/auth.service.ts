@@ -1,10 +1,11 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { MoreThanOrEqual, Repository } from 'typeorm';
 import * as argon2 from 'argon2';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -12,15 +13,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { MailerProducer } from 'src/queue/producers/mailer.producer';
 import { Account } from '../account/entities/account.entities';
 import { AccountRole } from '../account_role/entities/account_role.entity';
-import { User } from '../user/entities/user.entity';
-import { Restaurant } from '../restaurant/entities/restaurant.entity';
-import { RoleType } from '../account_role/enums/role-type.enum';
 import {
   ForgotPasswordDto,
   LoginDto,
   RegisterDto,
   ResetPasswordDto,
   VerifyOtpDto,
+  UserRole,
 } from './auth.dto';
 
 @Injectable()
@@ -32,90 +31,43 @@ export class AuthService {
     private readonly accountRepository: Repository<Account>,
     @InjectRepository(AccountRole)
     private readonly accountRoleRepository: Repository<AccountRole>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    @InjectRepository(Restaurant)
-    private readonly restaurantRepository: Repository<Restaurant>,
     private config: ConfigService,
     private jwt: JwtService,
     private readonly mailerProducer: MailerProducer,
   ) {}
 
   async register(dto: RegisterDto) {
-    console.log('Type of role:', typeof dto.role);
-    // Kiểm tra xem tài khoản đã tồn tại chưa
     const existingAccount = await this.accountRepository.findOne({
       where: { email: dto.email },
-      relations: ['roles'],
     });
-    const roleCode = dto.role as RoleType;
 
-    // Nếu tài khoản đã tồn tại
     if (existingAccount) {
-      const hasRole = existingAccount.roles?.some(
-        (r) => r.roleType === roleCode,
+      throw new ForbiddenException(
+        'Email đã đăng ký! Vui lòng dùng email khác.',
       );
-
-      if (hasRole) {
-        throw new ForbiddenException(
-          'Tài khoản đã có vai trò này. Vui lòng dùng email khác hoặc chọn vai trò khác.',
-        );
-      }
-
-      // Nếu tài khoản chưa có role này thì thêm role
-      const roleEntity = await this.accountRoleRepository.create({
-        account: existingAccount,
-        roleType: dto.role,
-      });
-      await this.accountRoleRepository.save(roleEntity);
-
-      // Thêm bản ghi vào bảng tương ứng với role mới
-      if (dto.role === RoleType.CUSTOMER) {
-        const newUser = this.userRepository.create({
-          account: existingAccount,
-        });
-        newUser.fullName = dto.name;
-        await this.userRepository.save(newUser);
-      } else if (dto.role === RoleType.RESTAURANT) {
-        const newRestaurant = this.restaurantRepository.create({
-          account: existingAccount,
-        });
-        newRestaurant.name = dto.name;
-        await this.restaurantRepository.save(newRestaurant);
-      }
-
-      return {
-        message: 'Tài khoản đã tồn tại, thêm vai trò thành công',
-        status: 'success',
-      };
     }
 
-    // Nếu tài khoản chưa tồn tại
-    const hashPassword = await argon2.hash(dto.password);
+    // Lấy role dựa trên code
+    const roleCode = dto.role === UserRole.CUSTOMER ? 'CUSTOMER' : 'RESTAURANT';
+    const role = await this.accountRoleRepository.findOne({
+      where: { code: roleCode },
+    });
+
+    if (!role) {
+      throw new BadRequestException('Role không tồn tại!');
+    }
+
+    const hash = await argon2.hash(dto.password);
+
     const newAccount = this.accountRepository.create({
+      username: dto.name,
       email: dto.email,
-      password: hashPassword,
+      password: hash,
+      role_id: role.id,
+      created_at: new Date(),
     });
-    const savedAccount = await this.accountRepository.save(newAccount);
-    const roleEntity = await this.accountRoleRepository.create({
-      account: savedAccount,
-      roleType: dto.role,
-    });
-    await this.accountRoleRepository.save(roleEntity);
 
-    if (dto.role === RoleType.CUSTOMER) {
-      const newUser = this.userRepository.create({
-        account: savedAccount,
-      });
-      newUser.fullName = dto.name;
-      await this.userRepository.save(newUser);
-    } else if (dto.role === RoleType.RESTAURANT) {
-      const newRestaurant = this.restaurantRepository.create({
-        account: savedAccount,
-      });
-      newRestaurant.name = dto.name;
-      await this.restaurantRepository.save(newRestaurant);
-    }
+    await this.accountRepository.save(newAccount);
 
     const data = {
       to: dto.email,
@@ -123,81 +75,71 @@ export class AuthService {
       text: 'Bạn đã đăng ký thành công',
     };
     await this.mailerProducer.sendMail(data);
-    // return this.generateTokens(
-    //   savedAccount.id,
-    //   savedAccount.email,
-    //   savedAccount.roles.map((r) => r.roleType),
-    // );
-    return {
-      message: 'Đăng ký thành công',
-      status: 'success',
-    };
+    return this.generateTokens(
+      newAccount.id,
+      newAccount.email,
+      newAccount.role_id,
+    );
   }
 
   async login(dto: LoginDto, response: any) {
     const account = await this.accountRepository.findOne({
       where: { email: dto.email },
-      relations: ['roles'],
+      relations: ['role'],
     });
 
     if (!account) {
-      throw new NotFoundException('Email không tồn tại');
-    }
-
-    const isPasswordValid = await argon2.verify(account.password, dto.password);
-
-    if (!isPasswordValid) {
-      throw new BadRequestException('Mật khẩu không đúng');
-    }
-
-    // Kiểm tra xem tài khoản có role mà người dùng đang cố gắng đăng nhập không
-    const hasRequestedRole = account.roles.some(
-      (role) => role.roleType === dto.role,
-    );
-    if (!hasRequestedRole) {
       throw new ForbiddenException(
-        'Bạn không có quyền đăng nhập với vai trò này',
+        'Sai tài khoản hoặc mật khẩu! Vui lòng đăng nhập lại.',
       );
     }
 
-    // Cập nhật thời gian đăng nhập cuối cùng
-    account.last_login = new Date();
-    await this.accountRepository.save(account);
+    const pwMatch = await argon2.verify(account.password, dto.password);
 
-    // Tạo token chỉ với role được chọn để đăng nhập
+    if (!pwMatch) {
+      throw new ForbiddenException(
+        'Sai tài khoản hoặc mật khẩu! Vui lòng đăng nhập lại.',
+      );
+    }
+
+    // Kiểm tra role
+    const roleCode = dto.role === UserRole.CUSTOMER ? 'CUSTOMER' : 'RESTAURANT';
+    if (account.role.code !== roleCode) {
+      throw new ForbiddenException(
+        'Tài khoản này không có quyền đăng nhập với vai trò này!',
+      );
+    }
+
     const tokens = await this.generateTokens(
       account.id,
       account.email,
-      dto.role,
+      account.role_id,
     );
 
     response.cookie('refresh_token', tokens.refresh_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: this.config.get('NODE_ENV') === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     return {
-      access_token: tokens.access_token,
       message: 'Đăng nhập thành công',
+      access_token: tokens.access_token,
+      account: {
+        id: account.id,
+        username: account.username,
+        email: account.email,
+        role: account.role.code,
+      },
     };
   }
 
   async generateTokens(
-    id: number,
+    accountId: number,
     email: string,
-    role: RoleType,
-  ): Promise<{
-    access_token: string;
-    refresh_token: string;
-  }> {
-    const payload = {
-      sub: id,
-      email: email,
-      role: role, // Sử dụng role được truyền vào
-    };
-
+    roleId: number,
+  ): Promise<{ access_token: string; refresh_token: string }> {
+    const payload = { sub: accountId, email, role: roleId };
     const secret = this.config.get('JWT_SECRET');
 
     const access_token = await this.jwt.signAsync(payload, {
@@ -206,7 +148,7 @@ export class AuthService {
     });
 
     const refresh_token = await this.jwt.signAsync(
-      { sub: id },
+      { sub: accountId, role: roleId },
       { expiresIn: '7d', secret },
     );
 
