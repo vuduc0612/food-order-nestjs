@@ -264,11 +264,11 @@ export class DishController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Xóa món ăn' })
+  @ApiOperation({ summary: 'Xoá món ăn' })
   @ApiParam({ name: 'id', description: 'ID của món ăn' })
   @ApiResponse({
     status: 200,
-    description: 'Món ăn đã được xóa thành công',
+    description: 'Món ăn đã được xoá thành công',
   })
   @Roles(RoleType.RESTAURANT)
   async deleteDish(
@@ -276,5 +276,17 @@ export class DishController {
     @Req() req,
   ): Promise<void> {
     return this.dishService.deleteDish(id, req.user.id);
+  }
+
+  @Post('seed-fake-data')
+  @ApiOperation({ summary: 'Tạo dữ liệu mẫu các món ăn cho nhà hàng' })
+  @ApiResponse({
+    status: 201,
+    description: 'Dữ liệu mẫu đã được tạo thành công',
+    type: [DishDto],
+  })
+  @Roles(RoleType.RESTAURANT)
+  async seedFakeData(@Req() req): Promise<DishDto[]> {
+    return this.dishService.seedFakeData(req.user.id);
   }
 }

@@ -271,4 +271,153 @@ export class DishService {
       restaurantId: dish.restaurant.id,
     };
   }
+
+  // Phương thức tạo dữ liệu mẫu cho món ăn
+  async seedFakeData(accountId: number): Promise<DishDto[]> {
+    // Tìm nhà hàng dựa trên accountId
+    console.log('restaurant id', accountId);
+    const restaurant = await this.restaurantRepository.findOne({
+      where: { accountId: accountId },
+    });
+
+    if (!restaurant) {
+      throw new NotFoundException(
+        `Restaurant not found for account ID: ${accountId}`,
+      );
+    }
+
+    // Tạo các danh mục mẫu
+    const categories = [
+      'Món chính',
+      'Món khai vị',
+      'Món tráng miệng',
+      'Đồ uống',
+      'Đặc sản',
+    ];
+
+    const savedCategories = [];
+
+    for (const categoryName of categories) {
+      let category = await this.categoryRepository.findOne({
+        where: { name: categoryName, restaurant: { id: restaurant.id } },
+      });
+
+      if (!category) {
+        const newCategory = this.categoryRepository.create({
+          name: categoryName,
+          restaurant: restaurant,
+        });
+        category = await this.categoryRepository.save(newCategory);
+      }
+
+      savedCategories.push(category);
+    }
+
+    // Dữ liệu các món ăn mẫu
+    const fakeDishes = [
+      {
+        name: 'Phở bò đặc biệt',
+        price: 75000,
+        description:
+          'Phở bò truyền thống với nước dùng ngọt thanh từ xương bò hầm nhiều giờ',
+        thumbnail:
+          'https://res.cloudinary.com/dospciqhb/image/upload/v1710066371/pho-bo.jpg',
+        category: savedCategories[0], // Món chính
+      },
+      {
+        name: 'Bún chả Hà Nội',
+        price: 65000,
+        description:
+          'Bún ăn kèm chả viên và chả miếng nướng thơm ngon, nước mắm chua ngọt đậm đà',
+        thumbnail:
+          'https://res.cloudinary.com/dospciqhb/image/upload/v1710066371/bun-cha.jpg',
+        category: savedCategories[0], // Món chính
+      },
+      {
+        name: 'Gỏi cuốn tôm thịt',
+        price: 45000,
+        description: 'Gỏi cuốn với tôm tươi, thịt luộc, rau thơm và bún',
+        thumbnail:
+          'https://res.cloudinary.com/dospciqhb/image/upload/v1710066371/goi-cuon.jpg',
+        category: savedCategories[1], // Món khai vị
+      },
+      {
+        name: 'Chả giò hải sản',
+        price: 55000,
+        description: 'Chả giò giòn rụm với nhân hải sản và rau củ',
+        thumbnail:
+          'https://res.cloudinary.com/dospciqhb/image/upload/v1710066371/cha-gio.jpg',
+        category: savedCategories[1], // Món khai vị
+      },
+      {
+        name: 'Chè khúc bạch',
+        price: 35000,
+        description:
+          'Chè khúc bạch mát lạnh với trái cây tươi và thạch rau câu',
+        thumbnail:
+          'https://res.cloudinary.com/dospciqhb/image/upload/v1710066371/che-khuc-bach.jpg',
+        category: savedCategories[2], // Món tráng miệng
+      },
+      {
+        name: 'Bánh flan caramen',
+        price: 25000,
+        description: 'Bánh flan mềm mịn với lớp caramen ngọt đậm',
+        thumbnail:
+          'https://res.cloudinary.com/dospciqhb/image/upload/v1710066371/banh-flan.jpg',
+        category: savedCategories[2], // Món tráng miệng
+      },
+      {
+        name: 'Nước ép cam tươi',
+        price: 30000,
+        description: 'Nước ép từ cam tươi nguyên chất, không đường',
+        thumbnail:
+          'https://res.cloudinary.com/dospciqhb/image/upload/v1710066371/nuoc-cam.jpg',
+        category: savedCategories[3], // Đồ uống
+      },
+      {
+        name: 'Sinh tố bơ',
+        price: 40000,
+        description: 'Sinh tố bơ đặc sánh mịn với sữa tươi',
+        thumbnail:
+          'https://res.cloudinary.com/dospciqhb/image/upload/v1710066371/sinh-to-bo.jpg',
+        category: savedCategories[3], // Đồ uống
+      },
+      {
+        name: 'Cơm niêu sườn chả',
+        price: 85000,
+        description: 'Cơm niêu thơm ngon với sườn nướng và chả trứng',
+        thumbnail:
+          'https://res.cloudinary.com/dospciqhb/image/upload/v1710066371/com-nieu.jpg',
+        category: savedCategories[4], // Đặc sản
+      },
+      {
+        name: 'Lẩu thái hải sản',
+        price: 250000,
+        description:
+          'Lẩu thái chua cay với hải sản tươi ngon, phục vụ 2-3 người',
+        thumbnail:
+          'https://res.cloudinary.com/dospciqhb/image/upload/v1710066371/lau-thai.jpg',
+        category: savedCategories[4], // Đặc sản
+      },
+    ];
+
+    const savedDishes = [];
+
+    // Lưu các món ăn vào database
+    for (const fakeDish of fakeDishes) {
+      const dish = this.dishRepository.create({
+        name: fakeDish.name,
+        price: fakeDish.price,
+        description: fakeDish.description,
+        thumbnail: fakeDish.thumbnail,
+        restaurant: restaurant,
+        category: fakeDish.category,
+      });
+
+      const savedDish = await this.dishRepository.save(dish);
+      savedDishes.push(this.mapToDishDto(savedDish));
+    }
+
+    return savedDishes;
+  }
 }
