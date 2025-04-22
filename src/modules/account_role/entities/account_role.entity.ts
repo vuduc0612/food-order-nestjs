@@ -1,4 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Account } from 'src/modules/account/entities/account.entities';
 import { RoleType } from '../enums/role-type.enum';
 
@@ -21,6 +27,10 @@ export class AccountRole {
   @Column({ type: 'varchar', length: 255, nullable: true })
   description: string;
 
-  @OneToMany(() => Account, (account) => account.role)
-  accounts: Account[];
+  @Column({ name: 'account_id', type: 'int' })
+  accountId: number;
+
+  @ManyToOne(() => Account, (account) => account.roles)
+  @JoinColumn({ name: 'account_id' })
+  account: Account;
 }

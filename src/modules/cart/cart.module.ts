@@ -9,6 +9,7 @@ import { UserModule } from '../user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Dish } from '../dish/entities/dish.entity';
 import { Account } from '../account/entities/account.entities';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { Account } from '../account/entities/account.entities';
     TypeOrmModule.forFeature([Dish, Account]), // Add this to make Dish repository available
     DishModule, // Import DishModule để sử dụng DishService
     UserModule, // Import UserModule để sử dụng UserService
+    AuthModule, // Import AuthModule để sử dụng AuthService
   ],
   controllers: [CartController],
   providers: [CartService],
