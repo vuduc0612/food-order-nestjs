@@ -186,6 +186,77 @@ export class DishService {
     return dish;
   }
 
+  // Helper methods to reduce code duplication
+  private async getRestaurantByAccountId(accountId: number): Promise<Restaurant> {
+    const restaurant = await this.restaurantRepository.findOne({
+      where: { accountId },
+    });
+
+    if (!restaurant) {
+      throw new NotFoundException(`Restaurant not found for account ID: ${accountId}`);
+    }
+
+    return restaurant;
+  }
+
+  private async getCategoryById(categoryId: number): Promise<Category> {
+    const category = await this.categoryRepository.findOne({
+      where: { id: categoryId },
+      relations: ['restaurant'],
+    });
+
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+
+    return category;
+  }
+
+  private async getOrCreateCategory(categoryName: string, restaurantId: number): Promise<Category> {
+    const existingCategory = await this.categoryRepository.findOne({
+      where: { name: categoryName, restaurant: { id: restaurantId } },
+    });
+
+    if (existingCategory) {
+      return existingCategory;
+    }
+
+    const restaurant = await this.restaurantRepository.findOne({
+      where: { id: restaurantId },
+    });
+
+    const newCategory = this.categoryRepository.create({
+      name: categoryName,
+      restaurant,
+    });
+    
+    return this.categoryRepository.save(newCategory);
+  }
+
+  private async getPaginatedDishes(options: {
+    page: number;
+    limit: number;
+    where?: any;
+  }): Promise<PageDto<DishDto>> {
+    const { page, limit, where = {} } = options;
+    const skip = page * limit;
+    
+    const [dishes, total] = await this.dishRepository.findAndCount({
+      where,
+      skip,
+      take: limit,
+      relations: ['category', 'restaurant'],
+    });
+
+    return {
+      content: dishes.map((dish) => this.mapToDishDto(dish)),
+      number: page,
+      size: limit,
+      totalElements: total,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
   private mapToDishDto(dish: Dish): DishDto {
     return {
       id: dish.id,
