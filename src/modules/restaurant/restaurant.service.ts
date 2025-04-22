@@ -48,8 +48,8 @@ export class RestaurantService {
 
     Object.assign(restaurant, updateRestaurantDto);
 
-    const updatedRestaurant = await this.restaurantRepository.save(restaurant);
-    return this.findById(updatedRestaurant.id);
+    await this.restaurantRepository.save(restaurant);
+    return this.findById(id);
   }
 
   async updateImage(id: number, imageUrl: string): Promise<Restaurant> {
@@ -76,6 +76,33 @@ export class RestaurantService {
   async getCurrentRestaurant(
     accountId: number,
   ): Promise<RestaurantResponseDto> {
+    const restaurant = await this._getRestaurantWithAccount(accountId);
+
+    const dishesPage = await this.dishService.getAllDishByRestaurant(
+      accountId,
+      0,
+      100,
+    );
+
+    return this._mapToRestaurantResponseDto(restaurant, dishesPage.content);
+  }
+
+  async getRestaurantWithDishes(id: number): Promise<RestaurantResponseDto> {
+    const restaurant = await this.findById(id);
+
+    const dishesPage = await this.dishService.getAllDishByRestaurant(
+      restaurant.account.id,
+      0,
+      100,
+    );
+
+    return this._mapToRestaurantResponseDto(restaurant, dishesPage.content);
+  }
+
+  /**
+   * Helper: Get restaurant with account validation
+   */
+  private async _getRestaurantWithAccount(accountId: number): Promise<Restaurant> {
     const restaurant = await this.findByAccountId(accountId);
     if (!restaurant) {
       throw new NotFoundException(
@@ -89,45 +116,16 @@ export class RestaurantService {
       );
     }
 
-    // Lấy danh sách món ăn của nhà hàng
-    const dishesPage = await this.dishService.getAllDishByRestaurant(
-      accountId,
-      0,
-      100,
-    );
-
-    return {
-      id: restaurant.id,
-      account_id: restaurant.account.id,
-      name: restaurant.name,
-      description: restaurant.description,
-      address: restaurant.address,
-      phone: restaurant.phone,
-      image_url: restaurant.image_url,
-      email: restaurant.account.email,
-      dishes: dishesPage.content, // Thêm danh sách món ăn
-    };
+    return restaurant;
   }
 
-  async getRestaurantWithDishes(id: number): Promise<RestaurantResponseDto> {
-    const restaurant = await this.findById(id);
-    if (!restaurant) {
-      throw new NotFoundException(`Restaurant with ID ${id} not found`);
-    }
-
-    if (!restaurant.account) {
-      throw new NotFoundException(
-        `Account not found for restaurant with ID ${id}`,
-      );
-    }
-
-    // Lấy danh sách món ăn của nhà hàng
-    const dishesPage = await this.dishService.getAllDishByRestaurant(
-      restaurant.account.id,
-      0,
-      100,
-    );
-
+  /**
+   * Helper: Map restaurant to response DTO
+   */
+  private _mapToRestaurantResponseDto(
+    restaurant: Restaurant,
+    dishes: DishDto[],
+  ): RestaurantResponseDto {
     return {
       id: restaurant.id,
       account_id: restaurant.account.id,
@@ -137,7 +135,7 @@ export class RestaurantService {
       phone: restaurant.phone,
       image_url: restaurant.image_url,
       email: restaurant.account.email,
-      dishes: dishesPage.content, // Thêm danh sách món ăn
+      dishes,
     };
   }
 }

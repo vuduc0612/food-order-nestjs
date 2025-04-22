@@ -22,19 +22,11 @@ export class CategoryService {
     createCategoryDto: CreateCategoryDto,
     accountId: number,
   ): Promise<Category> {
-    const restaurant = await this.restaurantRepository.findOne({
-      where: { accountId: accountId },
-    });
-
-    if (!restaurant) {
-      throw new NotFoundException(
-        `Restaurant not found for account ID ${accountId}`,
-      );
-    }
+    const restaurant = await this._findRestaurantByAccountId(accountId);
 
     const category = this.categoryRepository.create({
       name: createCategoryDto.name,
-      restaurant: restaurant,
+      restaurant,
     });
 
     return this.categoryRepository.save(category);
@@ -54,15 +46,7 @@ export class CategoryService {
   }
 
   async findByAccountId(accountId: number): Promise<Category[]> {
-    const restaurant = await this.restaurantRepository.findOne({
-      where: { accountId: accountId },
-    });
-
-    if (!restaurant) {
-      throw new NotFoundException(
-        `Restaurant not found for account ID ${accountId}`,
-      );
-    }
+    const restaurant = await this._findRestaurantByAccountId(accountId);
 
     return this.categoryRepository.find({
       where: { restaurant: { id: restaurant.id } },
@@ -87,15 +71,7 @@ export class CategoryService {
 
   async remove(id: number, accountId: number): Promise<void> {
     const category = await this.findById(id);
-    const restaurant = await this.restaurantRepository.findOne({
-      where: { accountId: accountId },
-    });
-
-    if (!restaurant) {
-      throw new NotFoundException(
-        `Restaurant not found for account ID ${accountId}`,
-      );
-    }
+    const restaurant = await this._findRestaurantByAccountId(accountId);
 
     if (category.restaurant.id !== restaurant.id) {
       throw new NotFoundException('Bạn không có quyền xóa danh mục này');
@@ -117,8 +93,16 @@ export class CategoryService {
   }
 
   async getRestaurantIdByAccountId(accountId: number): Promise<number> {
+    const restaurant = await this._findRestaurantByAccountId(accountId);
+    return restaurant.id;
+  }
+
+  /**
+   * Helper: Find restaurant by account ID
+   */
+  private async _findRestaurantByAccountId(accountId: number): Promise<Restaurant> {
     const restaurant = await this.restaurantRepository.findOne({
-      where: { accountId: accountId },
+      where: { accountId },
     });
 
     if (!restaurant) {
@@ -127,6 +111,6 @@ export class CategoryService {
       );
     }
 
-    return restaurant.id;
+    return restaurant;
   }
 }
