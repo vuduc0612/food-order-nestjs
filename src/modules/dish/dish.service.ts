@@ -22,20 +22,7 @@ export class DishService {
   ) {}
 
   async getAllDishes(page: number, limit: number): Promise<PageDto<DishDto>> {
-    const skip = page * limit;
-    const [dishes, total] = await this.dishRepository.findAndCount({
-      skip,
-      take: limit,
-      relations: ['category', 'restaurant'],
-    });
-
-    return {
-      content: dishes.map((dish) => this.mapToDishDto(dish)),
-      number: page,
-      size: limit,
-      totalElements: total,
-      totalPages: Math.ceil(total / limit),
-    };
+    return this.paginateDishes({}, page, limit);
   }
 
   async getAllDishByRestaurant(
@@ -43,31 +30,8 @@ export class DishService {
     page: number,
     limit: number,
   ): Promise<PageDto<DishDto>> {
-    const restaurant = await this.restaurantRepository.findOne({
-      where: { accountId: accountId },
-    });
-
-    if (!restaurant) {
-      throw new NotFoundException(
-        `Restaurant not found for account ID: ${accountId}`,
-      );
-    }
-
-    const skip = page * limit;
-    const [dishes, total] = await this.dishRepository.findAndCount({
-      where: { restaurant: { id: restaurant.id } },
-      skip,
-      take: limit,
-      relations: ['category', 'restaurant'],
-    });
-
-    return {
-      content: dishes.map((dish) => this.mapToDishDto(dish)),
-      number: page,
-      size: limit,
-      totalElements: total,
-      totalPages: Math.ceil(total / limit),
-    };
+    const restaurant = await this.findRestaurantByAccountId(accountId);
+    return this.paginateDishes({ restaurant: { id: restaurant.id } }, page, limit);
   }
 
   async getAllDishByCategory(
@@ -76,47 +40,14 @@ export class DishService {
     page: number,
     limit: number,
   ): Promise<PageDto<DishDto>> {
-    const restaurant = await this.restaurantRepository.findOne({
-      where: { accountId: accountId },
-    });
+    const restaurant = await this.findRestaurantByAccountId(accountId);
+    const category = await this.findCategoryByIdAndRestaurant(categoryId, restaurant.id);
 
-    if (!restaurant) {
-      throw new NotFoundException(
-        `Restaurant not found for account ID: ${accountId}`,
-      );
-    }
-
-    const category = await this.categoryRepository.findOne({
-      where: { id: categoryId },
-      relations: ['restaurant'],
-    });
-
-    if (!category) {
-      throw new NotFoundException('Category not found');
-    }
-
-    if (category.restaurant.id !== restaurant.id) {
-      throw new BadRequestException(`Category not found in your restaurant`);
-    }
-
-    const skip = page * limit;
-    const [dishes, total] = await this.dishRepository.findAndCount({
-      where: {
-        restaurant: { id: restaurant.id },
-        category: { id: categoryId },
-      },
-      skip,
-      take: limit,
-      relations: ['category', 'restaurant'],
-    });
-
-    return {
-      content: dishes.map((dish) => this.mapToDishDto(dish)),
-      number: page,
-      size: limit,
-      totalElements: total,
-      totalPages: Math.ceil(total / limit),
-    };
+    return this.paginateDishes(
+      { restaurant: { id: restaurant.id }, category: { id: categoryId } },
+      page,
+      limit,
+    );
   }
 
   async getDishById(id: number): Promise<DishDto> {
@@ -132,44 +63,14 @@ export class DishService {
     return this.mapToDishDto(dish);
   }
 
-  async createDish(
-    dishDto: CreateDishDto,
-    accountId: number,
-  ): Promise<DishDto> {
-    // Tìm restaurant dựa trên accountId thay vì restaurantId
-    const restaurant = await this.restaurantRepository.findOne({
-      where: { accountId: accountId },
-    });
-
-    if (!restaurant) {
-      throw new NotFoundException(
-        `Restaurant not found for account ID: ${accountId}`,
-      );
-    }
-
-    // Check if category exists, if not create a new one
-    let category: Category;
-    const existingCategory = await this.categoryRepository.findOne({
-      where: { name: dishDto.category, restaurant: { id: restaurant.id } },
-    });
-
-    if (existingCategory) {
-      category = existingCategory;
-    } else {
-      const newCategory = this.categoryRepository.create({
-        name: dishDto.category,
-        restaurant: restaurant,
-      });
-      category = await this.categoryRepository.save(newCategory);
-    }
+  async createDish(dishDto: CreateDishDto, accountId: number): Promise<DishDto> {
+    const restaurant = await this.findRestaurantByAccountId(accountId);
+    const category = await this.findOrCreateCategory(dishDto.category, restaurant);
 
     const dish = this.dishRepository.create({
-      name: dishDto.name,
-      price: dishDto.price,
-      description: dishDto.description,
-      thumbnail: dishDto.thumbnail,
-      restaurant: restaurant,
-      category: category,
+      ...dishDto,
+      restaurant,
+      category,
     });
 
     const savedDish = await this.dishRepository.save(dish);
@@ -181,59 +82,12 @@ export class DishService {
     dishDto: UpdateDishDto,
     accountId: number,
   ): Promise<DishDto> {
-    const dish = await this.dishRepository.findOne({
-      where: { id },
-      relations: ['category', 'restaurant', 'restaurant.account'],
-    });
+    const dish = await this.findDishByIdAndAccountId(id, accountId);
 
-    if (!dish) {
-      throw new NotFoundException('Dish not found');
-    }
-
-    // Kiểm tra xem người dùng có quyền cập nhật món ăn này không
-    if (dish.restaurant.accountId !== accountId) {
-      throw new BadRequestException(
-        'You do not have permission to update this dish',
-      );
-    }
-
-    if (dishDto.name) {
-      dish.name = dishDto.name;
-    }
-
-    if (dishDto.price) {
-      dish.price = dishDto.price;
-    }
-
-    if (dishDto.description) {
-      dish.description = dishDto.description;
-    }
-
-    if (dishDto.thumbnail) {
-      dish.thumbnail = dishDto.thumbnail;
-    }
+    Object.assign(dish, dishDto);
 
     if (dishDto.category) {
-      // Check if category exists, if not create a new one
-      let category: Category;
-      const existingCategory = await this.categoryRepository.findOne({
-        where: {
-          name: dishDto.category,
-          restaurant: { id: dish.restaurant.id },
-        },
-      });
-
-      if (existingCategory) {
-        category = existingCategory;
-      } else {
-        const newCategory = this.categoryRepository.create({
-          name: dishDto.category,
-          restaurant: dish.restaurant,
-        });
-        category = await this.categoryRepository.save(newCategory);
-      }
-
-      dish.category = category;
+      dish.category = await this.findOrCreateCategory(dishDto.category, dish.restaurant);
     }
 
     const updatedDish = await this.dishRepository.save(dish);
@@ -241,23 +95,95 @@ export class DishService {
   }
 
   async deleteDish(id: number, accountId: number): Promise<void> {
+    const dish = await this.findDishByIdAndAccountId(id, accountId);
+    await this.dishRepository.delete(dish.id);
+  }
+
+  private async paginateDishes(
+    where: object,
+    page: number,
+    limit: number,
+  ): Promise<PageDto<DishDto>> {
+    const skip = page * limit;
+    const [dishes, total] = await this.dishRepository.findAndCount({
+      where,
+      skip,
+      take: limit,
+      relations: ['category', 'restaurant'],
+    });
+
+    return {
+      content: dishes.map((dish) => this.mapToDishDto(dish)),
+      number: page,
+      size: limit,
+      totalElements: total,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  private async findRestaurantByAccountId(accountId: number): Promise<Restaurant> {
+    const restaurant = await this.restaurantRepository.findOne({
+      where: { accountId },
+    });
+
+    if (!restaurant) {
+      throw new NotFoundException(`Restaurant not found for account ID: ${accountId}`);
+    }
+
+    return restaurant;
+  }
+
+  private async findCategoryByIdAndRestaurant(
+    categoryId: number,
+    restaurantId: number,
+  ): Promise<Category> {
+    const category = await this.categoryRepository.findOne({
+      where: { id: categoryId },
+      relations: ['restaurant'],
+    });
+
+    if (!category || category.restaurant.id !== restaurantId) {
+      throw new BadRequestException('Category not found in your restaurant');
+    }
+
+    return category;
+  }
+
+  private async findOrCreateCategory(
+    categoryName: string,
+    restaurant: Restaurant,
+  ): Promise<Category> {
+    const existingCategory = await this.categoryRepository.findOne({
+      where: { name: categoryName, restaurant: { id: restaurant.id } },
+    });
+
+    if (existingCategory) {
+      return existingCategory;
+    }
+
+    const newCategory = this.categoryRepository.create({
+      name: categoryName,
+      restaurant,
+    });
+
+    return this.categoryRepository.save(newCategory);
+  }
+
+  private async findDishByIdAndAccountId(id: number, accountId: number): Promise<Dish> {
     const dish = await this.dishRepository.findOne({
       where: { id },
-      relations: ['restaurant'],
+      relations: ['category', 'restaurant'],
     });
 
     if (!dish) {
       throw new NotFoundException('Dish not found');
     }
 
-    // Kiểm tra xem người dùng có quyền xóa món ăn này không
     if (dish.restaurant.accountId !== accountId) {
-      throw new BadRequestException(
-        'You do not have permission to delete this dish',
-      );
+      throw new BadRequestException('You do not have permission to access this dish');
     }
 
-    await this.dishRepository.delete(id);
+    return dish;
   }
 
   private mapToDishDto(dish: Dish): DishDto {
