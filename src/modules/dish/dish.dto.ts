@@ -76,23 +76,15 @@ export class DishDto {
     description: 'Thông tin danh mục' 
   })
   @ValidateNested()
-  @Type(() => CategoryDto)
-  category: CategoryDto;
+  category: string;
 
   @ApiProperty({ 
     type: RestaurantDto,
     description: 'Thông tin nhà hàng' 
   })
   @ValidateNested()
-  @Type(() => RestaurantDto)
-  restaurant: RestaurantDto;
+  restaurantId: number;
 
-  @ApiProperty({
-    example: true,
-    description: 'Trạng thái món ăn có sẵn',
-    default: true,
-  })
-  isAvailable: boolean;
 }
 
 export class CreateDishDto {
@@ -145,15 +137,21 @@ export class CreateDishDto {
   @IsString()
   @IsUrl()
   thumbnail?: string;
-
-  @ApiProperty({
-    example: true,
-    description: 'Trạng thái món ăn có sẵn',
-    default: true,
+  
+  @ApiProperty({ 
+    example: 1, 
+    description: 'ID của nhà hàng (bắt buộc khi tạo món ăn không có đăng nhập)',
+    required: false
   })
   @IsOptional()
-  @IsBoolean()
-  isAvailable?: boolean;
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return parseInt(value, 10);
+    }
+    return value;
+  })
+  @IsNumber()
+  restaurantId?: number;
 }
 
 export class UpdateDishDto {

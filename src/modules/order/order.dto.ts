@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsString, IsOptional } from 'class-validator';
+import { IsNumber, IsString, IsOptional, IsEnum } from 'class-validator';
+import { OrderStatus } from './enums/order-status.enum';
 
 export class CreateOrderDto {
   @ApiProperty({ example: 1, description: 'User ID' })
@@ -14,9 +15,23 @@ export class CreateOrderDto {
   @IsNumber()
   total_price: number;
 
-  @ApiProperty({ example: 'pending', description: 'Order status' })
+  @ApiProperty({ 
+    example: OrderStatus.PENDING, 
+    description: 'Order status',
+    enum: OrderStatus,
+    default: OrderStatus.PENDING
+  })
+  @IsEnum(OrderStatus)
+  status: OrderStatus;
+
+  @ApiProperty({ 
+    example: 'Please deliver to the back door', 
+    description: 'Order note', 
+    required: false 
+  })
+  @IsOptional()
   @IsString()
-  status: string;
+  note?: string;
 
   @ApiProperty({ example: '2025-03-27', description: 'Created at' })
   @IsString()
@@ -39,10 +54,18 @@ export class UpdateOrderDto {
   @IsNumber()
   total_price?: number;
 
+  @ApiProperty({ 
+    required: false,
+    enum: OrderStatus
+  })
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status?: OrderStatus;
+
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
-  status?: string;
+  note?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -50,43 +73,23 @@ export class UpdateOrderDto {
   created_at?: Date;
 }
 
-export class CheckoutDto {
-  @ApiProperty({ example: 'Delivery instructions here', description: 'Note for the order', required: false })
+export class CreateOrderNoteDto {
+  @ApiProperty({ 
+    example: 'Please deliver to the back door', 
+    description: 'Order note', 
+    required: false 
+  })
   @IsOptional()
   @IsString()
   note?: string;
-  
-  @ApiProperty({ example: '123 Main St, City', description: 'Delivery address', required: false })
-  @IsOptional()
-  @IsString()
-  address?: string;
 }
 
-export class OrderResponseDto {
-  @ApiProperty({ example: 1, description: 'Order ID' })
-  id: number;
-  
-  @ApiProperty({ example: 1, description: 'User ID' })
-  user_id: number;
-  
-  @ApiProperty({ example: 1, description: 'Restaurant ID' })
-  restaurant_id: number;
-  
-  @ApiProperty({ example: 150000, description: 'Total price' })
-  total_price: number;
-  
-  @ApiProperty({ example: 'pending', description: 'Order status' })
-  status: string;
-  
-  @ApiProperty({ example: 'Delivery instructions', description: 'Note for the order', required: false })
-  note?: string;
-  
-  @ApiProperty({ example: '2023-03-27T15:30:00Z', description: 'Created at' })
-  created_at: Date;
-  
-  @ApiProperty({ example: null, description: 'Updated at', required: false })
-  updated_at?: Date;
-  
-  @ApiProperty({ type: 'array', description: 'Order details', required: false })
-  orderDetails?: any[];
+export class UpdateOrderStatusDto {
+  @ApiProperty({ 
+    example: OrderStatus.PROCESSING, 
+    description: 'New order status',
+    enum: OrderStatus
+  })
+  @IsEnum(OrderStatus)
+  status: OrderStatus;
 }

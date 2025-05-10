@@ -18,20 +18,45 @@ import { APP_GUARD, Reflector } from '@nestjs/core';
 import { AuthGuard } from './modules/auth/guard/auth.guard';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Account } from './modules/account/entities/account.entities';
+import { CartModule } from './modules/cart/cart.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-yet';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+    }),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => {
+        const redisHost = configService.get<string>('REDIS_HOST');
+        const redisPort = Number(configService.get<string>('REDIS_PORT'));
+        const redisPassword = configService.get<string>('REDIS_PASSWORD');
+
+        const store = await redisStore({
+          socket: {
+            host: redisHost,
+            port: redisPort,
+          },
+          password: redisPassword,
+          ttl: 60 * 60 * 24 * 7, // 7 days
+        });
+
+        return {
+          store: store,
+        };
+      },
+      inject: [ConfigService],
     }),
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async () => ({
+      useFactory: async (configService: ConfigService) => ({
         redis: {
-          host: process.env.REDIS_HOST,
-          port: Number(process.env.REDIS_PORT),
-          password: process.env.REDIS_PASSWORD,
+          host: configService.get<string>('REDIS_HOST'),
+          port: Number(configService.get<number>('REDIS_PORT')),
+          password: configService.get<string>('REDIS_PASSWORD'),
         },
         defaultJobOptions: {
           attempts: 3,
@@ -50,6 +75,7 @@ import { Account } from './modules/account/entities/account.entities';
     AccountRoleModule,
     AuthModule,
     CategoryModule,
+    CartModule,
     DishModule,
     OrderModule,
     OrderDetailModule,
