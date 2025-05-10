@@ -30,6 +30,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from 'src/base/cloudinary/cloudinary.service';
 import * as Multer from 'multer';
 import { UpdateRestaurantDto, RestaurantResponseDto } from './restaurant.dto';
+import { Public } from '../auth/decorator/public.decorator';
 
 @ApiTags('Restaurants')
 @ApiBearerAuth()
@@ -71,6 +72,7 @@ export class RestaurantController {
     return this.restaurantService.getRestaurantWithDishes(id);
   }
 
+  @Public()
   @Patch(':id')
   @ApiOperation({ summary: 'Cập nhật thông tin và/hoặc ảnh nhà hàng' })
   @ApiParam({ name: 'id', description: 'ID của nhà hàng' })
@@ -97,20 +99,13 @@ export class RestaurantController {
     type: RestaurantResponseDto,
   })
   @UseInterceptors(FileInterceptor('image'))
-  @Roles(RoleType.RESTAURANT)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateRestaurantDto: UpdateRestaurantDto,
     @UploadedFile() file: Multer.File,
-    @Req() req,
   ) {
     const restaurant = await this.restaurantService.findById(id);
-    if (restaurant.account.id !== req.user.id) {
-      throw new BadRequestException(
-        'Bạn không có quyền cập nhật thông tin này',
-      );
-    }
-
+    
     // Cập nhật thông tin
     let updatedRestaurant = restaurant;
 

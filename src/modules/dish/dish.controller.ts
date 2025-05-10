@@ -33,6 +33,7 @@ import { DishDto, CreateDishDto, UpdateDishDto, PageDto } from './dish.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from 'src/base/cloudinary/cloudinary.service';
 import * as Multer from 'multer';
+import { Public } from '../auth/decorator/public.decorator';
 
 @ApiTags('Dishes')
 @ApiBearerAuth()
@@ -163,6 +164,7 @@ export class DishController {
     return this.dishService.getDishById(id);
   }
 
+  @Public()
   @Post()
   @ApiOperation({ summary: 'Tạo mới món ăn' })
   @ApiConsumes('multipart/form-data')
@@ -174,6 +176,11 @@ export class DishController {
         description: { type: 'string', example: 'Món phở truyền thống' },
         price: { type: 'number', example: 50000 },
         category: { type: 'string', example: 'Món chính' },
+        restaurantId: { 
+          type: 'number', 
+          example: 1, 
+          description: 'ID của nhà hàng (bắt buộc khi không đăng nhập)' 
+        },
         thumbnail: {
           type: 'string',
           format: 'binary',
@@ -189,7 +196,6 @@ export class DishController {
     type: DishDto,
   })
   @UseInterceptors(FileInterceptor('thumbnail'))
-  @Roles(RoleType.RESTAURANT)
   async createDish(
     @Body() createDishDto: CreateDishDto,
     @UploadedFile() file: Multer.File,
@@ -208,7 +214,12 @@ export class DishController {
       }
     }
 
-    return this.dishService.createDish(createDishDto, req.user.id);
+    const restaurantId = req.user?.id || createDishDto.restaurantId;
+    if (!restaurantId) {
+      throw new BadRequestException('Vui lòng cung cấp restaurantId');
+    }
+
+    return this.dishService.createDish(createDishDto, restaurantId);
   }
 
   @Patch(':id')

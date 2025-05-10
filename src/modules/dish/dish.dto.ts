@@ -66,6 +66,21 @@ export class CreateDishDto {
   @IsOptional()
   @IsString()
   thumbnail?: string;
+  
+  @ApiProperty({ 
+    example: 1, 
+    description: 'ID của nhà hàng (bắt buộc khi tạo món ăn không có đăng nhập)',
+    required: false
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return parseInt(value, 10);
+    }
+    return value;
+  })
+  @IsNumber()
+  restaurantId?: number;
 }
 
 export class UpdateDishDto {

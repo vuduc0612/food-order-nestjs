@@ -75,19 +75,40 @@ export class AuthService {
           account: existingAccount,
         });
         newUser.fullName = dto.name;
-        await this.userRepository.save(newUser);
+        const savedUser = await this.userRepository.save(newUser);
+        
+        const data = {
+          to: dto.email,
+          subject: 'Register',
+          text: 'Bạn đã đăng ký thành công',
+        };
+        await this.mailerProducer.sendMail(data);
+        
+        return {
+          id: savedUser.id,
+          message: 'Tài khoản đã tồn tại, thêm vai trò thành công',
+          status: 'success',
+        };
       } else if (dto.role === RoleType.RESTAURANT) {
         const newRestaurant = this.restaurantRepository.create({
           account: existingAccount,
         });
         newRestaurant.name = dto.name;
-        await this.restaurantRepository.save(newRestaurant);
+        const savedRestaurant = await this.restaurantRepository.save(newRestaurant);
+        
+        const data = {
+          to: dto.email,
+          subject: 'Register',
+          text: 'Bạn đã đăng ký thành công',
+        };
+        await this.mailerProducer.sendMail(data);
+        
+        return {
+          id: savedRestaurant.id,
+          message: 'Tài khoản đã tồn tại, thêm vai trò thành công',
+          status: 'success',
+        };
       }
-
-      return {
-        message: 'Tài khoản đã tồn tại, thêm vai trò thành công',
-        status: 'success',
-      };
     }
 
     // Nếu tài khoản chưa tồn tại
@@ -108,26 +129,41 @@ export class AuthService {
         account: savedAccount,
       });
       newUser.fullName = dto.name;
-      await this.userRepository.save(newUser);
+      const savedUser = await this.userRepository.save(newUser);
+      
+      const data = {
+        to: dto.email,
+        subject: 'Register',
+        text: 'Bạn đã đăng ký thành công',
+      };
+      await this.mailerProducer.sendMail(data);
+      
+      return {
+        id: savedUser.id,
+        message: 'Đăng ký thành công',
+        status: 'success',
+      };
     } else if (dto.role === RoleType.RESTAURANT) {
       const newRestaurant = this.restaurantRepository.create({
         account: savedAccount,
       });
       newRestaurant.name = dto.name;
-      await this.restaurantRepository.save(newRestaurant);
+      const savedRestaurant = await this.restaurantRepository.save(newRestaurant);
+      
+      const data = {
+        to: dto.email,
+        subject: 'Register',
+        text: 'Bạn đã đăng ký thành công',
+      };
+      await this.mailerProducer.sendMail(data);
+      
+      return {
+        id: savedRestaurant.id,
+        message: 'Đăng ký thành công',
+        status: 'success',
+      };
     }
-
-    const data = {
-      to: dto.email,
-      subject: 'Register',
-      text: 'Bạn đã đăng ký thành công',
-    };
-    await this.mailerProducer.sendMail(data);
-    // return this.generateTokens(
-    //   savedAccount.id,
-    //   savedAccount.email,
-    //   savedAccount.roles.map((r) => r.roleType),
-    // );
+    
     return {
       message: 'Đăng ký thành công',
       status: 'success',
