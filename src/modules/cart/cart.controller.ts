@@ -13,6 +13,7 @@ import {
 import { CartService } from './cart.service';
 import {
   AddToCartDto,
+  CartItemDto,
   CartResponseDto,
   UpdateCartItemDto,
 } from './dto/cart.dto';
@@ -24,11 +25,13 @@ import {
   ApiParam,
   ApiBody,
   ApiResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 
 @ApiTags('Cart')
 @Controller('cart')
 @UseGuards(AuthGuard)
+@ApiBearerAuth()
 export class CartController {
   constructor(
     private readonly cartService: CartService,
@@ -36,69 +39,65 @@ export class CartController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lấy giỏ hàng của người dùng hiện tại' })
+  @ApiOperation({ summary: 'Lấy thông tin giỏ hàng của user' })
   @ApiResponse({
     status: 200,
-    description: 'Lấy thông tin giỏ hàng thành công',
+    description: 'Trả về thông tin giỏ hàng',
     type: CartResponseDto,
   })
   async getCart(@Req() req): Promise<CartResponseDto> {
-    const currentUser = await this.userService.getCurrentUser(req.user.id);
+    const currentUser = await this.userService.getCurrentUser(req.user['id']);
     return this.cartService.getCart(currentUser.id);
   }
 
   @Post()
-  @ApiOperation({ summary: 'Thêm món ăn vào giỏ hàng' })
-  @ApiBody({ type: AddToCartDto })
+  @ApiOperation({ summary: 'Thêm sản phẩm vào giỏ hàng' })
   @ApiResponse({
-    status: 201,
-    description: 'Thêm món ăn vào giỏ hàng thành công',
+    status: 200,
+    description: 'Trả về thông tin giỏ hàng sau khi thêm sản phẩm',
     type: CartResponseDto,
   })
   async addToCart(
     @Req() req,
     @Body() addToCartDto: AddToCartDto,
   ): Promise<CartResponseDto> {
-    const currentUser = await this.userService.getCurrentUser(req.user.id);
+    const currentUser = await this.userService.getCurrentUser(req.user['id']);
     return this.cartService.addToCart(currentUser.id, addToCartDto);
   }
 
-  @Patch('item/:dishId')
-  @ApiOperation({ summary: 'Cập nhật số lượng món ăn trong giỏ hàng' })
-  @ApiParam({ name: 'dishId', description: 'ID của món ăn cần cập nhật' })
-  @ApiBody({ type: UpdateCartItemDto })
+  @Patch(':dishId')
+  @ApiOperation({ summary: 'Cập nhật số lượng sản phẩm trong giỏ hàng' })
   @ApiResponse({
     status: 200,
-    description: 'Cập nhật món ăn trong giỏ hàng thành công',
+    description: 'Trả về thông tin giỏ hàng sau khi cập nhật',
     type: CartResponseDto,
   })
   async updateCartItem(
     @Req() req,
-    @Param('dishId', ParseIntPipe) dishId: number,
+    @Param('dishId') dishId: number,
     @Body() updateCartItemDto: UpdateCartItemDto,
   ): Promise<CartResponseDto> {
     const currentUser = await this.userService.getCurrentUser(req.user['id']);
     return this.cartService.updateCartItem(
       currentUser.id,
-      dishId,
+      +dishId,
       updateCartItemDto,
     );
   }
 
-  @Delete('item/:dishId')
-  @ApiOperation({ summary: 'Xóa món ăn khỏi giỏ hàng' })
-  @ApiParam({ name: 'dishId', description: 'ID của món ăn cần xóa' })
+  @Delete(':dishId')
+  @ApiOperation({ summary: 'Xóa sản phẩm khỏi giỏ hàng' })
   @ApiResponse({
     status: 200,
-    description: 'Xóa món ăn khỏi giỏ hàng thành công',
+    description: 'Trả về thông tin giỏ hàng sau khi xóa sản phẩm',
     type: CartResponseDto,
   })
-  async removeCartItem(
+  async removeFromCart(
     @Req() req,
-    @Param('dishId', ParseIntPipe) dishId: number,
+    @Param('dishId') dishId: number,
   ): Promise<CartResponseDto> {
     const currentUser = await this.userService.getCurrentUser(req.user['id']);
-    return this.cartService.removeItem(currentUser.id, dishId);
+    return this.cartService.removeItem(currentUser.id, +dishId);
   }
 
   @Delete()

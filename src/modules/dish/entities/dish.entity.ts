@@ -43,6 +43,9 @@ export class Dish {
   @Column({ type: 'varchar', length: 255, nullable: true })
   thumbnail: string;
 
+  @Column({ type: 'boolean', default: true })
+  isAvailable: boolean;
+
   @CreateDateColumn()
   created_at: Date;
 

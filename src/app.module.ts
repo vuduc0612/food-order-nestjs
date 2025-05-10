@@ -18,20 +18,20 @@ import { APP_GUARD, Reflector } from '@nestjs/core';
 import { AuthGuard } from './modules/auth/guard/auth.guard';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Account } from './modules/account/entities/account.entities';
-import { CartModule } from './modules/cart/cart.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: '.env',
     }),
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: async () => ({
         redis: {
-          host: configService.get<string>('REDIS_HOST'),
-          port: Number(configService.get<number>('REDIS_PORT')),
-          password: configService.get<string>('REDIS_PASSWORD'),
+          host: process.env.REDIS_HOST,
+          port: Number(process.env.REDIS_PORT),
+          password: process.env.REDIS_PASSWORD,
         },
         defaultJobOptions: {
           attempts: 3,
@@ -56,7 +56,6 @@ import { CartModule } from './modules/cart/cart.module';
     RestaurantModule,
     UserModule,
     QueueModule,
-    CartModule,
   ],
   controllers: [AppController],
   providers: [

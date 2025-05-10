@@ -8,8 +8,37 @@ import {
   MaxLength,
   IsUrl,
   IsNotEmpty,
+  ValidateNested,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
+
+export class CategoryDto {
+  @ApiProperty({ 
+    example: 1, 
+    description: 'ID danh mục' 
+  })
+  id: number;
+
+  @ApiProperty({ 
+    example: 'Món chính', 
+    description: 'Tên danh mục' 
+  })
+  name: string;
+}
+
+export class RestaurantDto {
+  @ApiProperty({ 
+    example: 1, 
+    description: 'ID nhà hàng' 
+  })
+  id: number;
+
+  @ApiProperty({ 
+    example: 'Nhà hàng ABC', 
+    description: 'Tên nhà hàng' 
+  })
+  name: string;
+}
 
 export class DishDto {
   @ApiProperty({ 
@@ -43,16 +72,20 @@ export class DishDto {
   thumbnail: string;
 
   @ApiProperty({ 
-    example: 'Món chính', 
-    description: 'Tên danh mục' 
+    type: CategoryDto,
+    description: 'Thông tin danh mục' 
   })
-  category: string;
+  @ValidateNested()
+  @Type(() => CategoryDto)
+  category: CategoryDto;
 
   @ApiProperty({ 
-    example: 1, 
-    description: 'ID nhà hàng' 
+    type: RestaurantDto,
+    description: 'Thông tin nhà hàng' 
   })
-  restaurantId: number;
+  @ValidateNested()
+  @Type(() => RestaurantDto)
+  restaurant: RestaurantDto;
 
   @ApiProperty({
     example: true,
