@@ -9,19 +9,19 @@ import { MailerModule } from '@nestjs-modules/mailer';
   imports: [
     ConfigModule,
     MailerModule.forRootAsync({
-      useFactory: async (config: ConfigService) => ({
+      useFactory: async () => ({
         transport: {
           service: 'gmail',
           auth: {
-            user: config.get('SMTP_USER'),
-            pass: config.get('SMTP_PASS'),
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
           },
         },
         defaults: {
           from: '"No Reply" <anhhuaan@gmail.com>',
         },
       }),
-      inject: [ConfigService],
+      inject: [],
     }),
     BullModule.registerQueue({
       name: 'mailer-queue',

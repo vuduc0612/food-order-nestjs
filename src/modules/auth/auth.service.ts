@@ -9,7 +9,7 @@ import * as argon2 from 'argon2';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MailerProducer } from 'src/queue/producers/mailer.producer';
+import { MailerProducer } from '../../queue/producers/mailer.producer';
 import { Account } from '../account/entities/account.entities';
 import { AccountRole } from '../account_role/entities/account_role.entity';
 import { User } from '../user/entities/user.entity';
@@ -22,6 +22,7 @@ import {
   ResetPasswordDto,
   VerifyOtpDto,
 } from './auth.dto';
+
 
 @Injectable()
 export class AuthService {
@@ -198,7 +199,7 @@ export class AuthService {
       role: role, // Sử dụng role được truyền vào
     };
 
-    const secret = this.config.get('JWT_SECRET');
+    const secret = process.env.JWT_SECRET;
 
     const access_token = await this.jwt.signAsync(payload, {
       expiresIn: '7d',
@@ -216,7 +217,7 @@ export class AuthService {
   async logout(response: any) {
     response.clearCookie('refresh_token', {
       httpOnly: true,
-      secure: this.config.get('NODE_ENV') === 'production',
+      secure: process.env.NODE_ENV === 'production',
     });
 
     response.status(200).json({ message: 'Đăng xuất thành công' });

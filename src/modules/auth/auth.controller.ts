@@ -20,7 +20,9 @@ import { Response } from 'express';
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+  ) {}
 
   @Public()
   @Post('register')

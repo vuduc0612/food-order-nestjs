@@ -27,11 +27,11 @@ import { Account } from './modules/account/entities/account.entities';
     }),
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: async () => ({
         redis: {
-          host: configService.get<string>('REDIS_HOST'),
-          port: Number(configService.get<number>('REDIS_PORT')),
-          password: configService.get<string>('REDIS_PASSWORD'),
+          host: process.env.REDIS_HOST,
+          port: Number(process.env.REDIS_PORT),
+          password: process.env.REDIS_PASSWORD,
         },
         defaultJobOptions: {
           attempts: 3,
