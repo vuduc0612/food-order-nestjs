@@ -18,12 +18,12 @@ import { APP_GUARD, Reflector } from '@nestjs/core';
 import { AuthGuard } from './modules/auth/guard/auth.guard';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Account } from './modules/account/entities/account.entities';
-import { CartModule } from './modules/cart/cart.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: '.env',
     }),
     BullModule.forRootAsync({
       imports: [ConfigModule],
@@ -56,7 +56,6 @@ import { CartModule } from './modules/cart/cart.module';
     RestaurantModule,
     UserModule,
     QueueModule,
-    CartModule,
   ],
   controllers: [AppController],
   providers: [

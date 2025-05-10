@@ -49,3 +49,44 @@ export class UpdateOrderDto {
   @IsString()
   created_at?: Date;
 }
+
+export class CheckoutDto {
+  @ApiProperty({ example: 'Delivery instructions here', description: 'Note for the order', required: false })
+  @IsOptional()
+  @IsString()
+  note?: string;
+  
+  @ApiProperty({ example: '123 Main St, City', description: 'Delivery address', required: false })
+  @IsOptional()
+  @IsString()
+  address?: string;
+}
+
+export class OrderResponseDto {
+  @ApiProperty({ example: 1, description: 'Order ID' })
+  id: number;
+  
+  @ApiProperty({ example: 1, description: 'User ID' })
+  user_id: number;
+  
+  @ApiProperty({ example: 1, description: 'Restaurant ID' })
+  restaurant_id: number;
+  
+  @ApiProperty({ example: 150000, description: 'Total price' })
+  total_price: number;
+  
+  @ApiProperty({ example: 'pending', description: 'Order status' })
+  status: string;
+  
+  @ApiProperty({ example: 'Delivery instructions', description: 'Note for the order', required: false })
+  note?: string;
+  
+  @ApiProperty({ example: '2023-03-27T15:30:00Z', description: 'Created at' })
+  created_at: Date;
+  
+  @ApiProperty({ example: null, description: 'Updated at', required: false })
+  updated_at?: Date;
+  
+  @ApiProperty({ type: 'array', description: 'Order details', required: false })
+  orderDetails?: any[];
+}

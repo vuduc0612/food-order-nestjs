@@ -74,14 +74,6 @@ export class DishService {
     return this.mapToDishDto(dish);
   }
 
-<<<<<<< HEAD
-  async createDish(dishDto: CreateDishDto, accountId: number): Promise<DishDto> {
-    const restaurant = await this.findRestaurantByAccountId(accountId);
-    const category = await this.findOrCreateCategory(dishDto.category, restaurant);
-
-    const dish = this.dishRepository.create({
-      ...dishDto,
-=======
   async createDish(
     dishDto: CreateDishDto,
     accountId: number,
@@ -94,7 +86,6 @@ export class DishService {
       price: dishDto.price,
       description: dishDto.description,
       thumbnail: dishDto.thumbnail,
->>>>>>> linh
       restaurant,
       category,
     });
@@ -108,14 +99,6 @@ export class DishService {
     dishDto: UpdateDishDto,
     accountId: number,
   ): Promise<DishDto> {
-<<<<<<< HEAD
-    const dish = await this.findDishByIdAndAccountId(id, accountId);
-
-    Object.assign(dish, dishDto);
-
-    if (dishDto.category) {
-      dish.category = await this.findOrCreateCategory(dishDto.category, dish.restaurant);
-=======
     const dish = await this.dishRepository.findOne({
       where: { id },
       relations: ['category', 'restaurant'],
@@ -139,7 +122,6 @@ export class DishService {
 
     if (dishDto.category) {
       dish.category = await this.getOrCreateCategory(dishDto.category, dish.restaurant.id);
->>>>>>> linh
     }
 
     const updatedDish = await this.dishRepository.save(dish);
@@ -147,81 +129,6 @@ export class DishService {
   }
 
   async deleteDish(id: number, accountId: number): Promise<void> {
-    const dish = await this.findDishByIdAndAccountId(id, accountId);
-    await this.dishRepository.delete(dish.id);
-  }
-
-  private async paginateDishes(
-    where: object,
-    page: number,
-    limit: number,
-  ): Promise<PageDto<DishDto>> {
-    const skip = page * limit;
-    const [dishes, total] = await this.dishRepository.findAndCount({
-      where,
-      skip,
-      take: limit,
-      relations: ['category', 'restaurant'],
-    });
-
-    return {
-      content: dishes.map((dish) => this.mapToDishDto(dish)),
-      number: page,
-      size: limit,
-      totalElements: total,
-      totalPages: Math.ceil(total / limit),
-    };
-  }
-
-  private async findRestaurantByAccountId(accountId: number): Promise<Restaurant> {
-    const restaurant = await this.restaurantRepository.findOne({
-      where: { accountId },
-    });
-
-    if (!restaurant) {
-      throw new NotFoundException(`Restaurant not found for account ID: ${accountId}`);
-    }
-
-    return restaurant;
-  }
-
-  private async findCategoryByIdAndRestaurant(
-    categoryId: number,
-    restaurantId: number,
-  ): Promise<Category> {
-    const category = await this.categoryRepository.findOne({
-      where: { id: categoryId },
-      relations: ['restaurant'],
-    });
-
-    if (!category || category.restaurant.id !== restaurantId) {
-      throw new BadRequestException('Category not found in your restaurant');
-    }
-
-    return category;
-  }
-
-  private async findOrCreateCategory(
-    categoryName: string,
-    restaurant: Restaurant,
-  ): Promise<Category> {
-    const existingCategory = await this.categoryRepository.findOne({
-      where: { name: categoryName, restaurant: { id: restaurant.id } },
-    });
-
-    if (existingCategory) {
-      return existingCategory;
-    }
-
-    const newCategory = this.categoryRepository.create({
-      name: categoryName,
-      restaurant,
-    });
-
-    return this.categoryRepository.save(newCategory);
-  }
-
-  private async findDishByIdAndAccountId(id: number, accountId: number): Promise<Dish> {
     const dish = await this.dishRepository.findOne({
       where: { id },
       relations: ['category', 'restaurant'],
@@ -232,17 +139,12 @@ export class DishService {
     }
 
     if (dish.restaurant.accountId !== accountId) {
-<<<<<<< HEAD
-      throw new BadRequestException('You do not have permission to access this dish');
-=======
       throw new BadRequestException('You do not have permission to delete this dish');
->>>>>>> linh
     }
 
-    return dish;
+    await this.dishRepository.delete(dish.id);
   }
 
-  // Helper methods to reduce code duplication
   private async getRestaurantByAccountId(accountId: number): Promise<Restaurant> {
     const restaurant = await this.restaurantRepository.findOne({
       where: { accountId },
@@ -262,7 +164,7 @@ export class DishService {
     });
 
     if (!category) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException(`Category with ID ${categoryId} not found`);
     }
 
     return category;
@@ -279,84 +181,17 @@ export class DishService {
 
     const restaurant = await this.restaurantRepository.findOne({
       where: { id: restaurantId },
-    });
-
-    const newCategory = this.categoryRepository.create({
-      name: categoryName,
-      restaurant,
-    });
-    
-    return this.categoryRepository.save(newCategory);
-  }
-
-  private async getPaginatedDishes(options: {
-    page: number;
-    limit: number;
-    where?: any;
-  }): Promise<PageDto<DishDto>> {
-    const { page, limit, where = {} } = options;
-    const skip = page * limit;
-    
-    const [dishes, total] = await this.dishRepository.findAndCount({
-      where,
-      skip,
-      take: limit,
-      relations: ['category', 'restaurant'],
-    });
-
-    return {
-      content: dishes.map((dish) => this.mapToDishDto(dish)),
-      number: page,
-      size: limit,
-      totalElements: total,
-      totalPages: Math.ceil(total / limit),
-    };
-  }
-
-  // Helper methods to reduce code duplication
-  private async getRestaurantByAccountId(accountId: number): Promise<Restaurant> {
-    const restaurant = await this.restaurantRepository.findOne({
-      where: { accountId },
     });
 
     if (!restaurant) {
-      throw new NotFoundException(`Restaurant not found for account ID: ${accountId}`);
+      throw new NotFoundException(`Restaurant with ID ${restaurantId} not found`);
     }
-
-    return restaurant;
-  }
-
-  private async getCategoryById(categoryId: number): Promise<Category> {
-    const category = await this.categoryRepository.findOne({
-      where: { id: categoryId },
-      relations: ['restaurant'],
-    });
-
-    if (!category) {
-      throw new NotFoundException('Category not found');
-    }
-
-    return category;
-  }
-
-  private async getOrCreateCategory(categoryName: string, restaurantId: number): Promise<Category> {
-    const existingCategory = await this.categoryRepository.findOne({
-      where: { name: categoryName, restaurant: { id: restaurantId } },
-    });
-
-    if (existingCategory) {
-      return existingCategory;
-    }
-
-    const restaurant = await this.restaurantRepository.findOne({
-      where: { id: restaurantId },
-    });
 
     const newCategory = this.categoryRepository.create({
       name: categoryName,
       restaurant,
     });
-    
+
     return this.categoryRepository.save(newCategory);
   }
 
@@ -365,22 +200,20 @@ export class DishService {
     limit: number;
     where?: any;
   }): Promise<PageDto<DishDto>> {
-    const { page, limit, where = {} } = options;
-    const skip = page * limit;
-    
+    const skip = options.page * options.limit;
     const [dishes, total] = await this.dishRepository.findAndCount({
-      where,
+      where: options.where,
       skip,
-      take: limit,
+      take: options.limit,
       relations: ['category', 'restaurant'],
     });
 
     return {
       content: dishes.map((dish) => this.mapToDishDto(dish)),
-      number: page,
-      size: limit,
+      number: options.page,
+      size: options.limit,
       totalElements: total,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / options.limit),
     };
   }
 
@@ -388,11 +221,18 @@ export class DishService {
     return {
       id: dish.id,
       name: dish.name,
-      description: dish.description,
       price: dish.price,
+      description: dish.description,
       thumbnail: dish.thumbnail,
-      category: dish.category.name,
-      restaurantId: dish.restaurant.id,
+      category: {
+        id: dish.category.id,
+        name: dish.category.name,
+      },
+      restaurant: {
+        id: dish.restaurant.id,
+        name: dish.restaurant.name,
+      },
+      isAvailable: dish.isAvailable ?? true,
     };
   }
 }
