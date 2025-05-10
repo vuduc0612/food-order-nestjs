@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, IsEnum, IsOptional, MinLength, Matches } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  IsEnum,
+  IsOptional,
+  MinLength,
+  Matches,
+} from 'class-validator';
 import { RoleType } from '../../account_role/enums/role-type.enum';
 
 export class RegisterDto {
@@ -38,4 +45,4 @@ export class RegisterDto {
     message: 'Số điện thoại không hợp lệ',
   })
   restaurant_phone?: string;
-} 
+}

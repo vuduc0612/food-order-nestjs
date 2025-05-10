@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { Restaurant } from '../../restaurant/entities/restaurant.entity';
 import { Dish } from '../../dish/entities/dish.entity';
 
@@ -10,10 +18,10 @@ export class Category {
   @Column()
   name: string;
 
-  @ManyToOne(() => Restaurant, restaurant => restaurant.category)
+  @ManyToOne(() => Restaurant, (restaurant) => restaurant.category)
   restaurant: Restaurant;
 
-  @OneToMany(() => Dish, dish => dish.category)
+  @OneToMany(() => Dish, (dish) => dish.category)
   dishes: Dish[];
 
   @CreateDateColumn()

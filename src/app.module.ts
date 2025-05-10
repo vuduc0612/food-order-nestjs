@@ -18,8 +18,6 @@ import { APP_GUARD, Reflector } from '@nestjs/core';
 import { AuthGuard } from './modules/auth/guard/auth.guard';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Account } from './modules/account/entities/account.entities';
-import { CloudinaryModule } from './base/cloudinary/cloudinary.module';
-import { CartModule } from './modules/cart/cart.module';
 
 @Module({
   imports: [
@@ -58,8 +56,6 @@ import { CartModule } from './modules/cart/cart.module';
     RestaurantModule,
     UserModule,
     QueueModule,
-    CloudinaryModule,
-    CartModule,
   ],
   controllers: [AppController],
   providers: [

@@ -3,7 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from './entities/category.entity';
 import { Restaurant } from '../restaurant/entities/restaurant.entity';
-import { CreateCategoryDto, UpdateCategoryDto, CategoryResponseDto } from './category.dto';
+import {
+  CreateCategoryDto,
+  UpdateCategoryDto,
+  CategoryResponseDto,
+} from './category.dto';
 
 @Injectable()
 export class CategoryService {
@@ -14,20 +18,15 @@ export class CategoryService {
     private readonly restaurantRepository: Repository<Restaurant>,
   ) {}
 
-  async create(createCategoryDto: CreateCategoryDto, accountId: number): Promise<Category> {
-    const restaurant = await this.restaurantRepository.findOne({
-      where: { accountId: accountId },
-    });
-
-    if (!restaurant) {
-      throw new NotFoundException(
-        `Restaurant not found for account ID ${accountId}`,
-      );
-    }
+  async create(
+    createCategoryDto: CreateCategoryDto,
+    accountId: number,
+  ): Promise<Category> {
+    const restaurant = await this._findRestaurantByAccountId(accountId);
 
     const category = this.categoryRepository.create({
       name: createCategoryDto.name,
-      restaurant: restaurant,
+      restaurant,
     });
 
     return this.categoryRepository.save(category);
@@ -47,13 +46,7 @@ export class CategoryService {
   }
 
   async findByAccountId(accountId: number): Promise<Category[]> {
-    const restaurant = await this.restaurantRepository.findOne({
-      where: { accountId: accountId },
-    });
-
-    if (!restaurant) {
-      throw new NotFoundException(`Restaurant not found for account ID ${accountId}`);
-    }
+    const restaurant = await this._findRestaurantByAccountId(accountId);
 
     return this.categoryRepository.find({
       where: { restaurant: { id: restaurant.id } },
@@ -61,7 +54,10 @@ export class CategoryService {
     });
   }
 
-  async update(id: number, updateCategoryDto: UpdateCategoryDto): Promise<Category> {
+  async update(
+    id: number,
+    updateCategoryDto: UpdateCategoryDto,
+  ): Promise<Category> {
     const category = await this.findById(id);
 
     Object.assign(category, updateCategoryDto);
@@ -75,27 +71,21 @@ export class CategoryService {
 
   async remove(id: number, accountId: number): Promise<void> {
     const category = await this.findById(id);
-    const restaurant = await this.restaurantRepository.findOne({
-      where: { accountId: accountId },
-    });
-
-    if (!restaurant) {
-      throw new NotFoundException(`Restaurant not found for account ID ${accountId}`);
-    }
+    const restaurant = await this._findRestaurantByAccountId(accountId);
 
     if (category.restaurant.id !== restaurant.id) {
-      throw new NotFoundException(
-        'Bạn không có quyền xóa danh mục này',
-      );
+      throw new NotFoundException('Bạn không có quyền xóa danh mục này');
     }
 
     await this.categoryRepository.remove(category);
   }
 
-  async getCategoriesByAccountId(accountId: number): Promise<CategoryResponseDto[]> {
+  async getCategoriesByAccountId(
+    accountId: number,
+  ): Promise<CategoryResponseDto[]> {
     const categories = await this.findByAccountId(accountId);
 
-    return categories.map(category => ({
+    return categories.map((category) => ({
       id: category.id,
       restaurant_id: category.restaurant ? category.restaurant.id : null,
       name: category.name,
@@ -103,14 +93,24 @@ export class CategoryService {
   }
 
   async getRestaurantIdByAccountId(accountId: number): Promise<number> {
+    const restaurant = await this._findRestaurantByAccountId(accountId);
+    return restaurant.id;
+  }
+
+  /**
+   * Helper: Find restaurant by account ID
+   */
+  private async _findRestaurantByAccountId(accountId: number): Promise<Restaurant> {
     const restaurant = await this.restaurantRepository.findOne({
-      where: { accountId: accountId },
+      where: { accountId },
     });
 
     if (!restaurant) {
-      throw new NotFoundException(`Restaurant not found for account ID ${accountId}`);
+      throw new NotFoundException(
+        `Restaurant not found for account ID ${accountId}`,
+      );
     }
 
-    return restaurant.id;
+    return restaurant;
   }
 }

@@ -1,40 +1,123 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsBoolean, Min } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  Min,
+  MaxLength,
+  IsUrl,
+  IsNotEmpty,
+  ValidateNested,
+} from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
-export class DishDto {
-  @ApiProperty({ example: 1, description: 'ID món ăn' })
+export class CategoryDto {
+  @ApiProperty({ 
+    example: 1, 
+    description: 'ID danh mục' 
+  })
   id: number;
 
-  @ApiProperty({ example: 'Phở bò', description: 'Tên món ăn' })
+  @ApiProperty({ 
+    example: 'Món chính', 
+    description: 'Tên danh mục' 
+  })
+  name: string;
+}
+
+export class RestaurantDto {
+  @ApiProperty({ 
+    example: 1, 
+    description: 'ID nhà hàng' 
+  })
+  id: number;
+
+  @ApiProperty({ 
+    example: 'Nhà hàng ABC', 
+    description: 'Tên nhà hàng' 
+  })
+  name: string;
+}
+
+export class DishDto {
+  @ApiProperty({ 
+    example: 1, 
+    description: 'ID món ăn' 
+  })
+  id: number;
+
+  @ApiProperty({ 
+    example: 'Phở bò', 
+    description: 'Tên món ăn' 
+  })
   name: string;
 
-  @ApiProperty({ example: 'Món phở truyền thống', description: 'Mô tả món ăn' })
+  @ApiProperty({ 
+    example: 'Món phở truyền thống', 
+    description: 'Mô tả món ăn' 
+  })
   description: string;
 
-  @ApiProperty({ example: 50000, description: 'Giá món ăn' })
+  @ApiProperty({ 
+    example: 50000, 
+    description: 'Giá món ăn' 
+  })
   price: number;
 
-  @ApiProperty({ example: 'https://example.com/image.jpg', description: 'URL ảnh' })
+  @ApiProperty({
+    example: 'https://example.com/image.jpg',
+    description: 'URL ảnh',
+  })
   thumbnail: string;
 
-  @ApiProperty({ example: 'Món chính', description: 'Tên danh mục' })
-  category: string;
+  @ApiProperty({ 
+    type: CategoryDto,
+    description: 'Thông tin danh mục' 
+  })
+  @ValidateNested()
+  @Type(() => CategoryDto)
+  category: CategoryDto;
 
-  @ApiProperty({ example: 1, description: 'ID nhà hàng' })
-  restaurantId: number;
+  @ApiProperty({ 
+    type: RestaurantDto,
+    description: 'Thông tin nhà hàng' 
+  })
+  @ValidateNested()
+  @Type(() => RestaurantDto)
+  restaurant: RestaurantDto;
+
+  @ApiProperty({
+    example: true,
+    description: 'Trạng thái món ăn có sẵn',
+    default: true,
+  })
+  isAvailable: boolean;
 }
 
 export class CreateDishDto {
-  @ApiProperty({ example: 'Phở bò', description: 'Tên món ăn' })
+  @ApiProperty({ 
+    example: 'Phở bò', 
+    description: 'Tên món ăn' 
+  })
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
   name: string;
 
-  @ApiProperty({ example: 'Món phở truyền thống', description: 'Mô tả món ăn' })
+  @ApiProperty({ 
+    example: 'Món phở truyền thống', 
+    description: 'Mô tả món ăn' 
+  })
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
   description: string;
 
-  @ApiProperty({ example: 50000, description: 'Giá món ăn' })
+  @ApiProperty({ 
+    example: 50000, 
+    description: 'Giá món ăn' 
+  })
   @Transform(({ value }) => {
     if (typeof value === 'string') {
       return parseFloat(value);
@@ -45,66 +128,132 @@ export class CreateDishDto {
   @Min(0)
   price: number;
 
-  @ApiProperty({ example: 'Món chính', description: 'Tên danh mục' })
+  @ApiProperty({ 
+    example: 'Món chính', 
+    description: 'Tên danh mục' 
+  })
   @IsString()
+  @IsNotEmpty()
   category: string;
 
-  @ApiProperty({ example: 'https://example.com/image.jpg', description: 'URL ảnh', required: false })
+  @ApiProperty({
+    example: 'https://example.com/image.jpg',
+    description: 'URL ảnh',
+    required: false,
+  })
   @IsOptional()
   @IsString()
+  @IsUrl()
   thumbnail?: string;
+
+  @ApiProperty({
+    example: true,
+    description: 'Trạng thái món ăn có sẵn',
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isAvailable?: boolean;
 }
 
 export class UpdateDishDto {
-  @ApiProperty({ example: 'Phở bò', description: 'Tên món ăn', required: false })
+  @ApiProperty({
+    example: 'Phở bò',
+    description: 'Tên món ăn',
+    required: false,
+  })
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   name?: string;
 
-  @ApiProperty({ example: 'Món phở truyền thống', description: 'Mô tả món ăn', required: false })
+  @ApiProperty({
+    example: 'Món phở truyền thống',
+    description: 'Mô tả món ăn',
+    required: false,
+  })
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   description?: string;
 
-  @ApiProperty({ example: 50000, description: 'Giá món ăn', required: false })
+  @ApiProperty({ 
+    example: 50000, 
+    description: 'Giá món ăn',
+    required: false 
+  })
   @IsOptional()
   @Transform(({ value }) => {
     if (value === undefined || value === null) {
       return value;
     }
+    
     if (typeof value === 'string') {
       return parseFloat(value);
     }
+    
     return value;
   })
   @IsNumber()
   @Min(0)
   price?: number;
 
-  @ApiProperty({ example: 'Món chính', description: 'Tên danh mục', required: false })
+  @ApiProperty({
+    example: 'Món chính',
+    description: 'Tên danh mục',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   category?: string;
 
-  @ApiProperty({ example: 'https://example.com/image.jpg', description: 'URL ảnh', required: false })
+  @ApiProperty({
+    example: 'https://example.com/image.jpg',
+    description: 'URL ảnh',
+    required: false,
+  })
   @IsOptional()
   @IsString()
+  @IsUrl()
   thumbnail?: string;
+
+  @ApiProperty({
+    example: true,
+    description: 'Trạng thái món ăn có sẵn',
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isAvailable?: boolean;
 }
 
 export class PageDto<T> {
-  @ApiProperty({ description: 'Dữ liệu trả về' })
+  @ApiProperty({ 
+    description: 'Dữ liệu trả về' 
+  })
   content: T[];
 
-  @ApiProperty({ example: 1, description: 'Trang hiện tại' })
+  @ApiProperty({ 
+    example: 1, 
+    description: 'Trang hiện tại' 
+  })
   number: number;
 
-  @ApiProperty({ example: 10, description: 'Số lượng item trên một trang' })
+  @ApiProperty({ 
+    example: 10, 
+    description: 'Số lượng item trên một trang' 
+  })
   size: number;
 
-  @ApiProperty({ example: 100, description: 'Tổng số item' })
+  @ApiProperty({ 
+    example: 100, 
+    description: 'Tổng số item' 
+  })
   totalElements: number;
 
-  @ApiProperty({ example: 10, description: 'Tổng số trang' })
+  @ApiProperty({ 
+    example: 10, 
+    description: 'Tổng số trang' 
+  })
   totalPages: number;
-}
+} 

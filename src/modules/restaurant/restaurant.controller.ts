@@ -57,7 +57,9 @@ export class RestaurantController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Lấy thông tin nhà hàng theo ID cùng danh sách món ăn' })
+  @ApiOperation({
+    summary: 'Lấy thông tin nhà hàng theo ID cùng danh sách món ăn',
+  })
   @ApiParam({ name: 'id', description: 'ID của nhà hàng' })
   @ApiResponse({
     status: 200,
@@ -81,10 +83,10 @@ export class RestaurantController {
         description: { type: 'string', example: 'Nhà hàng ngon nhất Hà Nội' },
         address: { type: 'string', example: '123 Đường ABC, Hà Nội' },
         phone: { type: 'string', example: '0987654321' },
-        image: { 
-          type: 'string', 
+        image: {
+          type: 'string',
           format: 'binary',
-          description: 'File ảnh' 
+          description: 'File ảnh',
         },
       },
     },
@@ -111,20 +113,29 @@ export class RestaurantController {
 
     // Cập nhật thông tin
     let updatedRestaurant = restaurant;
-    
+
     // Nếu có dữ liệu cập nhật
     if (Object.keys(updateRestaurantDto).length > 0) {
-      updatedRestaurant = await this.restaurantService.update(id, updateRestaurantDto);
+      updatedRestaurant = await this.restaurantService.update(
+        id,
+        updateRestaurantDto,
+      );
     }
-    
+
     // Nếu có file ảnh
     if (file) {
       try {
-        const cloudinaryResponse = await this.cloudinaryService.uploadImage(file);
+        const cloudinaryResponse =
+          await this.cloudinaryService.uploadImage(file);
         const imageUrl = cloudinaryResponse.secure_url;
-        updatedRestaurant = await this.restaurantService.updateImage(id, imageUrl);
+        updatedRestaurant = await this.restaurantService.updateImage(
+          id,
+          imageUrl,
+        );
       } catch (error) {
-        throw new BadRequestException(`Không thể tải lên ảnh: ${error.message}`);
+        throw new BadRequestException(
+          `Không thể tải lên ảnh: ${error.message}`,
+        );
       }
     }
 

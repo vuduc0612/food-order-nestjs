@@ -151,9 +151,13 @@ export class AuthService {
     }
 
     // Kiểm tra xem tài khoản có role mà người dùng đang cố gắng đăng nhập không
-    const hasRequestedRole = account.roles.some(role => role.roleType === dto.role);
+    const hasRequestedRole = account.roles.some(
+      (role) => role.roleType === dto.role,
+    );
     if (!hasRequestedRole) {
-      throw new ForbiddenException('Bạn không có quyền đăng nhập với vai trò này');
+      throw new ForbiddenException(
+        'Bạn không có quyền đăng nhập với vai trò này',
+      );
     }
 
     // Cập nhật thời gian đăng nhập cuối cùng

@@ -4,35 +4,50 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
+  Patch,
   Post,
-  Put,
-  Request,
+  Req,
   UseGuards,
 } from '@nestjs/common';
-import { CartService, Cart } from './cart.service';
-import { AddToCartDto } from './dto/add-to-cart.dto';
-import { UpdateCartItemDto } from './dto/update-cart-item.dto';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { CartService } from './cart.service';
+import {
+  AddToCartDto,
+  CartItemDto,
+  CartResponseDto,
+  UpdateCartItemDto,
+} from './dto/cart.dto';
 import { AuthGuard } from '../auth/guard/auth.guard';
-import { CartDto } from './dto/cart.dto';
+import { UserService } from '../user/user.service';
+import {
+  ApiOperation,
+  ApiTags,
+  ApiParam,
+  ApiBody,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 
 @ApiTags('Cart')
 @Controller('cart')
 @UseGuards(AuthGuard)
 @ApiBearerAuth()
 export class CartController {
-  constructor(private readonly cartService: CartService) {}
+  constructor(
+    private readonly cartService: CartService,
+    private readonly userService: UserService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Lấy thông tin giỏ hàng của user' })
   @ApiResponse({
     status: 200,
     description: 'Trả về thông tin giỏ hàng',
-    type: CartDto,
+    type: CartResponseDto,
   })
-  async getCart(@Request() req): Promise<Cart> {
-    const userId = req.user.id;
-    return this.cartService.getCart(userId);
+  async getCart(@Req() req): Promise<CartResponseDto> {
+    const currentUser = await this.userService.getCurrentUser(req.user['id']);
+    return this.cartService.getCart(currentUser.id);
   }
 
   @Post()
@@ -40,33 +55,33 @@ export class CartController {
   @ApiResponse({
     status: 200,
     description: 'Trả về thông tin giỏ hàng sau khi thêm sản phẩm',
-    type: CartDto,
+    type: CartResponseDto,
   })
   async addToCart(
-    @Request() req,
+    @Req() req,
     @Body() addToCartDto: AddToCartDto,
-  ): Promise<Cart> {
-    const userId = req.user.id;
-    return this.cartService.addToCart(userId, addToCartDto);
+  ): Promise<CartResponseDto> {
+    const currentUser = await this.userService.getCurrentUser(req.user['id']);
+    return this.cartService.addToCart(currentUser.id, addToCartDto);
   }
 
-  @Put(':dishId')
+  @Patch(':dishId')
   @ApiOperation({ summary: 'Cập nhật số lượng sản phẩm trong giỏ hàng' })
   @ApiResponse({
     status: 200,
     description: 'Trả về thông tin giỏ hàng sau khi cập nhật',
-    type: CartDto,
+    type: CartResponseDto,
   })
   async updateCartItem(
-    @Request() req,
+    @Req() req,
     @Param('dishId') dishId: number,
     @Body() updateCartItemDto: UpdateCartItemDto,
-  ): Promise<Cart> {
-    const userId = req.user.id;
+  ): Promise<CartResponseDto> {
+    const currentUser = await this.userService.getCurrentUser(req.user['id']);
     return this.cartService.updateCartItem(
-      userId,
+      currentUser.id,
       +dishId,
-      updateCartItemDto.quantity,
+      updateCartItemDto,
     );
   }
 
@@ -75,24 +90,25 @@ export class CartController {
   @ApiResponse({
     status: 200,
     description: 'Trả về thông tin giỏ hàng sau khi xóa sản phẩm',
-    type: CartDto,
+    type: CartResponseDto,
   })
   async removeFromCart(
-    @Request() req,
+    @Req() req,
     @Param('dishId') dishId: number,
-  ): Promise<Cart> {
-    const userId = req.user.id;
-    return this.cartService.removeFromCart(userId, +dishId);
+  ): Promise<CartResponseDto> {
+    const currentUser = await this.userService.getCurrentUser(req.user['id']);
+    return this.cartService.removeItem(currentUser.id, +dishId);
   }
 
   @Delete()
   @ApiOperation({ summary: 'Xóa toàn bộ giỏ hàng' })
   @ApiResponse({
     status: 200,
-    description: 'Giỏ hàng đã được xóa',
+    description: 'Xóa toàn bộ giỏ hàng thành công',
+    type: CartResponseDto,
   })
-  async clearCart(@Request() req): Promise<void> {
-    const userId = req.user.id;
-    return this.cartService.clearCart(userId);
+  async clearCart(@Req() req): Promise<CartResponseDto> {
+    const currentUser = await this.userService.getCurrentUser(req.user['id']);
+    return this.cartService.clearCart(currentUser.id);
   }
-} 
+}

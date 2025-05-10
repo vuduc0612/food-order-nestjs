@@ -46,8 +46,20 @@ export class DishController {
 
   @Get()
   @ApiOperation({ summary: 'Lấy danh sách tất cả món ăn (có phân trang)' })
-  @ApiQuery({ name: 'page', description: 'Số trang (bắt đầu từ 0)', type: Number, required: false, example: 0 })
-  @ApiQuery({ name: 'limit', description: 'Số lượng kết quả mỗi trang', type: Number, required: false, example: 10 })
+  @ApiQuery({
+    name: 'page',
+    description: 'Số trang (bắt đầu từ 0)',
+    type: Number,
+    required: false,
+    example: 0,
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: 'Số lượng kết quả mỗi trang',
+    type: Number,
+    required: false,
+    example: 10,
+  })
   @ApiResponse({
     status: 200,
     description: 'Danh sách món ăn',
@@ -63,10 +75,27 @@ export class DishController {
   }
 
   @Get('restaurant/:restaurantId')
-  @ApiOperation({ summary: 'Lấy danh sách món ăn của nhà hàng (có phân trang)' })
-  @ApiParam({ name: 'restaurantId', description: 'ID của nhà hàng (không cần thiết nếu đã đăng nhập)' })
-  @ApiQuery({ name: 'page', description: 'Số trang (bắt đầu từ 0)', type: Number, required: false, example: 0 })
-  @ApiQuery({ name: 'limit', description: 'Số lượng kết quả mỗi trang', type: Number, required: false, example: 10 })
+  @ApiOperation({
+    summary: 'Lấy danh sách món ăn của nhà hàng (có phân trang)',
+  })
+  @ApiParam({
+    name: 'restaurantId',
+    description: 'ID của nhà hàng (không cần thiết nếu đã đăng nhập)',
+  })
+  @ApiQuery({
+    name: 'page',
+    description: 'Số trang (bắt đầu từ 0)',
+    type: Number,
+    required: false,
+    example: 0,
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: 'Số lượng kết quả mỗi trang',
+    type: Number,
+    required: false,
+    example: 10,
+  })
   @ApiResponse({
     status: 200,
     description: 'Danh sách món ăn',
@@ -83,10 +112,24 @@ export class DishController {
   }
 
   @Get('category/:categoryId')
-  @ApiOperation({ summary: 'Lấy danh sách món ăn trong danh mục của nhà hàng (có phân trang)' })
+  @ApiOperation({
+    summary: 'Lấy danh sách món ăn trong danh mục của nhà hàng (có phân trang)',
+  })
   @ApiParam({ name: 'categoryId', description: 'ID của danh mục' })
-  @ApiQuery({ name: 'page', description: 'Số trang (bắt đầu từ 0)', type: Number, required: false, example: 0 })
-  @ApiQuery({ name: 'limit', description: 'Số lượng kết quả mỗi trang', type: Number, required: false, example: 10 })
+  @ApiQuery({
+    name: 'page',
+    description: 'Số trang (bắt đầu từ 0)',
+    type: Number,
+    required: false,
+    example: 0,
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: 'Số lượng kết quả mỗi trang',
+    type: Number,
+    required: false,
+    example: 10,
+  })
   @ApiResponse({
     status: 200,
     description: 'Danh sách món ăn',
@@ -99,7 +142,12 @@ export class DishController {
     @Query('limit') limit: number = 10,
     @Req() req,
   ): Promise<PageDto<DishDto>> {
-    return this.dishService.getAllDishByCategory(categoryId, req.user.id, page, limit);
+    return this.dishService.getAllDishByCategory(
+      categoryId,
+      req.user.id,
+      page,
+      limit,
+    );
   }
 
   @Get(':id')
@@ -126,13 +174,13 @@ export class DishController {
         description: { type: 'string', example: 'Món phở truyền thống' },
         price: { type: 'number', example: 50000 },
         category: { type: 'string', example: 'Món chính' },
-        thumbnail: { 
-          type: 'string', 
+        thumbnail: {
+          type: 'string',
           format: 'binary',
-          description: 'Ảnh món ăn' 
+          description: 'Ảnh món ăn',
         },
       },
-      required: ['name', 'price', 'category']
+      required: ['name', 'price', 'category'],
     },
   })
   @ApiResponse({
@@ -143,20 +191,23 @@ export class DishController {
   @UseInterceptors(FileInterceptor('thumbnail'))
   @Roles(RoleType.RESTAURANT)
   async createDish(
-    @Body() createDishDto: CreateDishDto, 
+    @Body() createDishDto: CreateDishDto,
     @UploadedFile() file: Multer.File,
-    @Req() req
+    @Req() req,
   ): Promise<DishDto> {
     // Xử lý file ảnh nếu có
     if (file) {
       try {
-        const cloudinaryResponse = await this.cloudinaryService.uploadImage(file);
+        const cloudinaryResponse =
+          await this.cloudinaryService.uploadImage(file);
         createDishDto.thumbnail = cloudinaryResponse.secure_url;
       } catch (error) {
-        throw new BadRequestException(`Không thể tải lên ảnh: ${error.message}`);
+        throw new BadRequestException(
+          `Không thể tải lên ảnh: ${error.message}`,
+        );
       }
     }
-    
+
     return this.dishService.createDish(createDishDto, req.user.id);
   }
 
@@ -172,10 +223,10 @@ export class DishController {
         description: { type: 'string', example: 'Món phở truyền thống' },
         price: { type: 'number', example: 50000 },
         category: { type: 'string', example: 'Món chính' },
-        thumbnail: { 
-          type: 'string', 
+        thumbnail: {
+          type: 'string',
           format: 'binary',
-          description: 'Ảnh món ăn' 
+          description: 'Ảnh món ăn',
         },
       },
     },
@@ -196,12 +247,15 @@ export class DishController {
     // Nếu có file ảnh
     if (file) {
       try {
-        const cloudinaryResponse = await this.cloudinaryService.uploadImage(file);
+        const cloudinaryResponse =
+          await this.cloudinaryService.uploadImage(file);
         const thumbnailUrl = cloudinaryResponse.secure_url;
         // Cập nhật URL thumbnail vào DTO
         updateDishDto.thumbnail = thumbnailUrl;
       } catch (error) {
-        throw new BadRequestException(`Không thể tải lên ảnh: ${error.message}`);
+        throw new BadRequestException(
+          `Không thể tải lên ảnh: ${error.message}`,
+        );
       }
     }
 
@@ -217,7 +271,10 @@ export class DishController {
     description: 'Món ăn đã được xóa thành công',
   })
   @Roles(RoleType.RESTAURANT)
-  async deleteDish(@Param('id', ParseIntPipe) id: number, @Req() req): Promise<void> {
+  async deleteDish(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req,
+  ): Promise<void> {
     return this.dishService.deleteDish(id, req.user.id);
   }
 }

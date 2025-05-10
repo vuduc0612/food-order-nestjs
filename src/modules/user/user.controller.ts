@@ -1,7 +1,6 @@
 import {
   Controller,
   Get,
-  Post,
   Body,
   Patch,
   Param,
@@ -31,7 +30,6 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from 'src/base/cloudinary/cloudinary.service';
 import * as Multer from 'multer';
-import { Public } from '../auth/decorator/public.decorator';
 import { UpdateUserDto, UserResponseDto } from './user.dto';
 
 @ApiTags('Users')
@@ -73,7 +71,9 @@ export class UserController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Cập nhật thông tin và/hoặc ảnh đại diện người dùng' })
+  @ApiOperation({
+    summary: 'Cập nhật thông tin và/hoặc ảnh đại diện người dùng',
+  })
   @ApiParam({ name: 'id', description: 'ID của người dùng' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -83,10 +83,10 @@ export class UserController {
         full_name: { type: 'string', example: 'Nguyen Van A' },
         phone: { type: 'string', example: '0987654321' },
         address: { type: 'string', example: 'Hà Nội' },
-        avatar: { 
-          type: 'string', 
+        avatar: {
+          type: 'string',
           format: 'binary',
-          description: 'File ảnh đại diện' 
+          description: 'File ảnh đại diện',
         },
       },
     },
@@ -107,28 +107,35 @@ export class UserController {
     // Kiểm tra người dùng chỉ có thể cập nhật thông tin của chính mình
     const user = await this.userService.findById(id);
     if (!user.account) {
-      throw new NotFoundException(`Account not found for user with ID ${user.id}`);
+      throw new NotFoundException(
+        `Account not found for user with ID ${user.id}`,
+      );
     }
     if (user.account.id !== req.user.id) {
-      throw new BadRequestException('Bạn không có quyền cập nhật thông tin này');
+      throw new BadRequestException(
+        'Bạn không có quyền cập nhật thông tin này',
+      );
     }
 
     // Cập nhật thông tin
     let updatedUser = user;
-    
+
     // Nếu có dữ liệu cập nhật
     if (Object.keys(updateUserDto).length > 0) {
       updatedUser = await this.userService.update(id, updateUserDto);
     }
-    
+
     // Nếu có file ảnh
     if (file) {
       try {
-        const cloudinaryResponse = await this.cloudinaryService.uploadImage(file);
+        const cloudinaryResponse =
+          await this.cloudinaryService.uploadImage(file);
         const avatarUrl = cloudinaryResponse.secure_url;
         updatedUser = await this.userService.updateAvatar(id, avatarUrl);
       } catch (error) {
-        throw new BadRequestException(`Không thể tải lên ảnh: ${error.message}`);
+        throw new BadRequestException(
+          `Không thể tải lên ảnh: ${error.message}`,
+        );
       }
     }
 

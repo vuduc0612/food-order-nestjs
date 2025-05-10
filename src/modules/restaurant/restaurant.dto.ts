@@ -53,11 +53,11 @@ export class RestaurantResponseDto {
 
   @ApiProperty({ example: 'restaurant@example.com', description: 'Email' })
   email: string;
-  
-  @ApiProperty({ 
-    type: [DishDto], 
+
+  @ApiProperty({
+    type: [DishDto],
     description: 'Danh sách món ăn của nhà hàng',
-    required: false 
+    required: false,
   })
   dishes?: DishDto[];
 }

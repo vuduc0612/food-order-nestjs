@@ -8,7 +8,6 @@ import {
   UseGuards,
   ParseIntPipe,
   BadRequestException,
-  NotFoundException,
   Req,
   Body,
 } from '@nestjs/common';
@@ -25,16 +24,18 @@ import {
   ApiBody,
   ApiResponse,
 } from '@nestjs/swagger';
-import { CreateCategoryDto, UpdateCategoryDto, CategoryResponseDto } from './category.dto';
+import {
+  CreateCategoryDto,
+  UpdateCategoryDto,
+  CategoryResponseDto,
+} from './category.dto';
 
 @ApiTags('Categories')
 @ApiBearerAuth()
 @UseGuards(AuthGuard, RolesGuard)
 @Controller('categories')
 export class CategoryController {
-  constructor(
-    private readonly categoryService: CategoryService,
-  ) {}
+  constructor(private readonly categoryService: CategoryService) {}
 
   @Post()
   @ApiOperation({ summary: 'Tạo mới danh mục' })
@@ -74,19 +75,23 @@ export class CategoryController {
   @Roles(RoleType.RESTAURANT)
   async findOne(@Param('id', ParseIntPipe) id: number, @Req() req) {
     const category = await this.categoryService.findById(id);
-    
+
     // Đảm bảo category có thuộc tính restaurant
     if (!category.restaurant) {
       throw new BadRequestException('Danh mục không hợp lệ');
     }
-    
+
     // Kiểm tra xem category có thuộc về nhà hàng của người dùng không
-    const restaurantId = await this.categoryService.getRestaurantIdByAccountId(req.user.id);
-    
+    const restaurantId = await this.categoryService.getRestaurantIdByAccountId(
+      req.user.id,
+    );
+
     if (category.restaurant.id !== restaurantId) {
-      throw new BadRequestException('Bạn không có quyền xem thông tin danh mục này');
+      throw new BadRequestException(
+        'Bạn không có quyền xem thông tin danh mục này',
+      );
     }
-    
+
     return category;
   }
 
@@ -106,13 +111,15 @@ export class CategoryController {
     @Req() req,
   ) {
     const category = await this.categoryService.findById(id);
-    
+
     if (!category.restaurant) {
       throw new BadRequestException('Danh mục không hợp lệ');
     }
-    
-    const restaurantId = await this.categoryService.getRestaurantIdByAccountId(req.user.id);
-    
+
+    const restaurantId = await this.categoryService.getRestaurantIdByAccountId(
+      req.user.id,
+    );
+
     if (category.restaurant.id !== restaurantId) {
       throw new BadRequestException(
         'Bạn không có quyền cập nhật thông tin này',
