@@ -37,6 +37,12 @@ export class UserService {
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findById(id);
 
+    // Xử lý đặc biệt cho trường full_name từ DTO
+    if (updateUserDto.full_name !== undefined) {
+      user.fullName = updateUserDto.full_name;
+      delete updateUserDto.full_name; // Xóa để tránh Object.assign gán lại
+    }
+
     Object.assign(user, updateUserDto);
 
     const updatedUser = await this.userRepository.save(user);

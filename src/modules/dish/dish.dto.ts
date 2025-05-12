@@ -8,8 +8,37 @@ import {
   MaxLength,
   IsUrl,
   IsNotEmpty,
+  ValidateNested,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
+
+export class CategoryDto {
+  @ApiProperty({ 
+    example: 1, 
+    description: 'ID danh mục' 
+  })
+  id: number;
+
+  @ApiProperty({ 
+    example: 'Món chính', 
+    description: 'Tên danh mục' 
+  })
+  name: string;
+}
+
+export class RestaurantDto {
+  @ApiProperty({ 
+    example: 1, 
+    description: 'ID nhà hàng' 
+  })
+  id: number;
+
+  @ApiProperty({ 
+    example: 'Nhà hàng ABC', 
+    description: 'Tên nhà hàng' 
+  })
+  name: string;
+}
 
 export class DishDto {
   @ApiProperty({ 
@@ -43,23 +72,19 @@ export class DishDto {
   thumbnail: string;
 
   @ApiProperty({ 
-    example: 'Món chính', 
-    description: 'Tên danh mục' 
+    type: CategoryDto,
+    description: 'Thông tin danh mục' 
   })
+  @ValidateNested()
   category: string;
 
   @ApiProperty({ 
-    example: 1, 
-    description: 'ID nhà hàng' 
+    type: RestaurantDto,
+    description: 'Thông tin nhà hàng' 
   })
+  @ValidateNested()
   restaurantId: number;
 
-  @ApiProperty({
-    example: true,
-    description: 'Trạng thái món ăn có sẵn',
-    default: true,
-  })
-  isAvailable: boolean;
 }
 
 export class CreateDishDto {
@@ -112,15 +137,21 @@ export class CreateDishDto {
   @IsString()
   @IsUrl()
   thumbnail?: string;
-
-  @ApiProperty({
-    example: true,
-    description: 'Trạng thái món ăn có sẵn',
-    default: true,
+  
+  @ApiProperty({ 
+    example: 1, 
+    description: 'ID của nhà hàng (bắt buộc khi tạo món ăn không có đăng nhập)',
+    required: false
   })
   @IsOptional()
-  @IsBoolean()
-  isAvailable?: boolean;
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return parseInt(value, 10);
+    }
+    return value;
+  })
+  @IsNumber()
+  restaurantId?: number;
 }
 
 export class UpdateDishDto {

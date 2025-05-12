@@ -1,9 +1,8 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { Cache } from 'cache-manager';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  AddToCartDto,
   CartItemDto,
   CartResponseDto,
   UpdateCartItemDto,
@@ -16,48 +15,83 @@ import { Repository } from 'typeorm';
 @Injectable()
 export class CartService {
   private readonly CART_EXPIRY_TIME = 60 * 60 * 24 * 7; // 7 days in seconds
+  private readonly logger = new Logger(CartService.name);
 
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     @InjectRepository(Dish)
     private readonly dishRepository: Repository<Dish>,
     private readonly dishService: DishService,
-  ) {}
+  ) {
+    // Kiểm tra Redis khi khởi tạo service
+    this.testRedisConnection();
+  }
+
+  /**
+   * Test Redis connection
+   */
+  private async testRedisConnection() {
+    try {
+      // Lưu một giá trị test
+      const testKey = 'test_redis_connection';
+      const testValue = `test_${Date.now()}`;
+
+      this.logger.log(
+        `Testing Redis connection, setting ${testKey}=${testValue}`,
+      );
+      await this.cacheManager.set(testKey, testValue, 60);
+
+      // Lấy giá trị để kiểm tra
+      const retrievedValue = await this.cacheManager.get(testKey);
+
+      if (retrievedValue === testValue) {
+        this.logger.log('Redis connection successful! ✅');
+      } else {
+        this.logger.error(
+          `Redis test failed: Expected ${testValue}, got ${retrievedValue}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error('Redis connection test failed with error:', error);
+    }
+  }
 
   /**
    * Get cart by user ID or create a new one
    */
   async getCart(userId: number): Promise<CartResponseDto> {
-    const cartKey = this._getCartKey(userId);
+    // Sử dụng userId làm key vì prefix 'cart:' đã được cấu hình trong CacheModule toàn cục
+    const cartKey = `${userId}`;
+    this.logger.log(`Getting cart with key: ${cartKey}`);
+
     let cart = await this.cacheManager.get<CartResponseDto>(cartKey);
+    this.logger.log(`Cart found in Redis: ${cart ? 'Yes' : 'No'}`);
 
     if (!cart) {
-      cart = this._createNewCart();
-      await this.cacheManager.set(cartKey, cart, this.CART_EXPIRY_TIME);
-    }
+      // Create a new cart if it doesn't exist
+      cart = {
+        cartId: uuidv4(),
+        items: [],
+        totalPrice: 0,
+        totalItems: 0,
+      };
+      this.logger.log(`Creating new cart with ID: ${cart.cartId}`);
 
-    return cart;
-  }
+      try {
+        await this.cacheManager.set(cartKey, cart, this.CART_EXPIRY_TIME);
+        this.logger.log(`New cart saved to Redis with key: ${cartKey}`);
 
-  /**
-   * Add items to cart
-   */
-  async addToCart(
-    userId: number,
-    addToCartDto: AddToCartDto,
-  ): Promise<CartResponseDto> {
-    const cart = await this.getCart(userId);
-
-    for (const item of addToCartDto.items) {
-      const dish = await this.dishService.getDishById(item.dishId);
-      if (!dish) {
-        throw new NotFoundException(`Dish with ID ${item.dishId} not found`);
+        // Verify the cart was set correctly
+        const verifyCart =
+          await this.cacheManager.get<CartResponseDto>(cartKey);
+        this.logger.log(
+          `Verification - Cart saved successfully: ${verifyCart ? 'Yes' : 'No'}`,
+        );
+      } catch (error) {
+        this.logger.error(`Error saving cart to Redis: ${error.message}`);
       }
-
-      this._addItemToCart(cart, item, dish.price);
     }
 
-    await this._saveCart(userId, cart);
     return cart;
   }
 
@@ -69,37 +103,53 @@ export class CartService {
     dishId: number,
     updateCartItemDto: UpdateCartItemDto,
   ): Promise<CartResponseDto> {
+    const cartKey = `${userId}`;
     const cart = await this.getCart(userId);
 
-    const itemIndex = this._findCartItemIndex(cart, dishId);
+    const itemIndex = cart.items.findIndex((item) => item.dishId === dishId);
+
     if (itemIndex === -1) {
       throw new NotFoundException(
         `Item with dish ID ${dishId} not found in cart`,
       );
     }
 
+    // Update quantity from DTO
     cart.items[itemIndex].quantity = updateCartItemDto.quantity;
 
-    await this._saveCart(userId, cart);
+    // Recalculate totals
+    this._recalculateTotals(cart);
+
+    // Save updated cart
+    await this.cacheManager.set(cartKey, cart, this.CART_EXPIRY_TIME);
+
     return cart;
   }
 
   /**
    * Remove item from cart
    */
-  async removeItem(userId: number, dishId: number): Promise<CartResponseDto> {
+  async removeItem(userId: number, itemId: number): Promise<CartResponseDto> {
+    const cartKey = `${userId}`;
     const cart = await this.getCart(userId);
 
-    const itemIndex = this._findCartItemIndex(cart, dishId);
+    const itemIndex = cart.items.findIndex((item) => item.dishId === itemId);
+
     if (itemIndex === -1) {
       throw new NotFoundException(
-        `Item with dish ID ${dishId} not found in cart`,
+        `Item with dish ID ${itemId} not found in cart`,
       );
     }
 
+    // Remove item
     cart.items.splice(itemIndex, 1);
 
-    await this._saveCart(userId, cart);
+    // Recalculate totals
+    this._recalculateTotals(cart);
+
+    // Save updated cart
+    await this.cacheManager.set(cartKey, cart, this.CART_EXPIRY_TIME);
+
     return cart;
   }
 
@@ -107,22 +157,10 @@ export class CartService {
    * Clear cart
    */
   async clearCart(userId: number): Promise<CartResponseDto> {
-    const cart = this._createNewCart();
-    await this._saveCart(userId, cart);
-    return cart;
-  }
+    const cartKey = `${userId}`;
+    await this.cacheManager.del(cartKey);
 
-  /**
-   * Helper: Generate cart key
-   */
-  private _getCartKey(userId: number): string {
-    return `cart:${userId}`;
-  }
-
-  /**
-   * Helper: Create a new cart
-   */
-  private _createNewCart(): CartResponseDto {
+    // Trả về một giỏ hàng trống
     return {
       cartId: uuidv4(),
       items: [],
@@ -132,38 +170,63 @@ export class CartService {
   }
 
   /**
-   * Helper: Add item to cart
+   * Add a dish to cart by dishId and quantity
    */
-  private _addItemToCart(cart: CartResponseDto, item: CartItemDto, price: number): void {
-    const existingItemIndex = this._findCartItemIndex(cart, item.dishId);
+  async addDishToCart(
+    userId: number,
+    dishId: number,
+    quantity: number = 1,
+  ): Promise<CartResponseDto> {
+    const cartKey = `${userId}`;
+    const cart = await this.getCart(userId);
 
-    if (existingItemIndex !== -1) {
-      cart.items[existingItemIndex].quantity += item.quantity;
-    } else {
-      cart.items.push({ ...item, price });
+    // Fetch dish details to get current price
+    const dish = await this.dishService.getDishById(dishId);
+    if (!dish) {
+      throw new NotFoundException(`Dish with ID ${dishId} not found`);
     }
 
-    this._recalculateTotals(cart);
-  }
+    // Create cart item with detailed information
+    const cartItem: CartItemDto = {
+      dishId: dishId,
+      quantity: quantity,
+      price: dish.price,
+      name: dish.name,
+      description: dish.description,
+      thumbnail: dish.thumbnail,
+      category: dish.category,
+    };
 
-  /**
-   * Helper: Find cart item index
-   */
-  private _findCartItemIndex(cart: CartResponseDto, dishId: number): number {
-    return cart.items.findIndex((item) => item.dishId === dishId);
-  }
+    // Check if item already exists in cart
+    const existingItemIndex = cart.items.findIndex(
+      (item) => item.dishId === dishId,
+    );
 
-  /**
-   * Helper: Save cart to cache
-   */
-  private async _saveCart(userId: number, cart: CartResponseDto): Promise<void> {
-    const cartKey = this._getCartKey(userId);
+    if (existingItemIndex !== -1) {
+      // Update quantity if item exists but preserve the existing item details
+      cart.items[existingItemIndex].quantity += quantity;
+      // Update other details in case they changed
+      cart.items[existingItemIndex].price = dish.price;
+      cart.items[existingItemIndex].name = dish.name;
+      cart.items[existingItemIndex].description = dish.description;
+      cart.items[existingItemIndex].thumbnail = dish.thumbnail;
+      cart.items[existingItemIndex].category = dish.category;
+    } else {
+      // Add new item
+      cart.items.push(cartItem);
+    }
+
+    // Recalculate totals
     this._recalculateTotals(cart);
+
+    // Save updated cart
     await this.cacheManager.set(cartKey, cart, this.CART_EXPIRY_TIME);
+
+    return cart;
   }
 
   /**
-   * Helper: Recalculate cart totals
+   * Recalculate cart totals
    */
   private _recalculateTotals(cart: CartResponseDto): void {
     cart.totalItems = cart.items.reduce(

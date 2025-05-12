@@ -9,7 +9,7 @@ import * as argon2 from 'argon2';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MailerProducer } from 'src/queue/producers/mailer.producer';
+import { MailerProducer } from '../../queue/producers/mailer.producer';
 import { Account } from '../account/entities/account.entities';
 import { AccountRole } from '../account_role/entities/account_role.entity';
 import { User } from '../user/entities/user.entity';
@@ -22,6 +22,7 @@ import {
   ResetPasswordDto,
   VerifyOtpDto,
 } from './auth.dto';
+
 
 @Injectable()
 export class AuthService {
@@ -75,19 +76,40 @@ export class AuthService {
           account: existingAccount,
         });
         newUser.fullName = dto.name;
-        await this.userRepository.save(newUser);
+        const savedUser = await this.userRepository.save(newUser);
+        
+        const data = {
+          to: dto.email,
+          subject: 'Register',
+          text: 'Bạn đã đăng ký thành công',
+        };
+        await this.mailerProducer.sendMail(data);
+        
+        return {
+          id: savedUser.id,
+          message: 'Tài khoản đã tồn tại, thêm vai trò thành công',
+          status: 'success',
+        };
       } else if (dto.role === RoleType.RESTAURANT) {
         const newRestaurant = this.restaurantRepository.create({
           account: existingAccount,
         });
         newRestaurant.name = dto.name;
-        await this.restaurantRepository.save(newRestaurant);
+        const savedRestaurant = await this.restaurantRepository.save(newRestaurant);
+        
+        const data = {
+          to: dto.email,
+          subject: 'Register',
+          text: 'Bạn đã đăng ký thành công',
+        };
+        await this.mailerProducer.sendMail(data);
+        
+        return {
+          id: savedRestaurant.id,
+          message: 'Tài khoản đã tồn tại, thêm vai trò thành công',
+          status: 'success',
+        };
       }
-
-      return {
-        message: 'Tài khoản đã tồn tại, thêm vai trò thành công',
-        status: 'success',
-      };
     }
 
     // Nếu tài khoản chưa tồn tại
@@ -108,26 +130,41 @@ export class AuthService {
         account: savedAccount,
       });
       newUser.fullName = dto.name;
-      await this.userRepository.save(newUser);
+      const savedUser = await this.userRepository.save(newUser);
+      
+      const data = {
+        to: dto.email,
+        subject: 'Register',
+        text: 'Bạn đã đăng ký thành công',
+      };
+      await this.mailerProducer.sendMail(data);
+      
+      return {
+        id: savedUser.id,
+        message: 'Đăng ký thành công',
+        status: 'success',
+      };
     } else if (dto.role === RoleType.RESTAURANT) {
       const newRestaurant = this.restaurantRepository.create({
         account: savedAccount,
       });
       newRestaurant.name = dto.name;
-      await this.restaurantRepository.save(newRestaurant);
+      const savedRestaurant = await this.restaurantRepository.save(newRestaurant);
+      
+      const data = {
+        to: dto.email,
+        subject: 'Register',
+        text: 'Bạn đã đăng ký thành công',
+      };
+      await this.mailerProducer.sendMail(data);
+      
+      return {
+        id: savedRestaurant.id,
+        message: 'Đăng ký thành công',
+        status: 'success',
+      };
     }
-
-    const data = {
-      to: dto.email,
-      subject: 'Register',
-      text: 'Bạn đã đăng ký thành công',
-    };
-    await this.mailerProducer.sendMail(data);
-    // return this.generateTokens(
-    //   savedAccount.id,
-    //   savedAccount.email,
-    //   savedAccount.roles.map((r) => r.roleType),
-    // );
+    
     return {
       message: 'Đăng ký thành công',
       status: 'success',
@@ -198,7 +235,7 @@ export class AuthService {
       role: role, // Sử dụng role được truyền vào
     };
 
-    const secret = this.config.get('JWT_SECRET');
+    const secret = process.env.JWT_SECRET;
 
     const access_token = await this.jwt.signAsync(payload, {
       expiresIn: '7d',
@@ -216,7 +253,7 @@ export class AuthService {
   async logout(response: any) {
     response.clearCookie('refresh_token', {
       httpOnly: true,
-      secure: this.config.get('NODE_ENV') === 'production',
+      secure: process.env.NODE_ENV === 'production',
     });
 
     response.status(200).json({ message: 'Đăng xuất thành công' });

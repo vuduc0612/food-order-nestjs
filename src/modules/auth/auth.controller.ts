@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Post,
-  Res,
-  BadRequestException,
-} from '@nestjs/common';
+import { Body, Controller, Post, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
   ApiBearerAuth,
@@ -27,7 +20,9 @@ import { Response } from 'express';
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+  ) {}
 
   @Public()
   @Post('register')
