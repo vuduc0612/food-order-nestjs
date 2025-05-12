@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryService } from './cloudinary.service';
 
@@ -14,7 +13,6 @@ import { CloudinaryService } from './cloudinary.service';
           api_secret: process.env.CLOUDINARY_API_SECRET,
         });
       },
-      inject: [],
     },
     CloudinaryService,
   ],
