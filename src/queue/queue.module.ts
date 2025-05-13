@@ -2,26 +2,21 @@ import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { MailerProducer } from './producers/mailer.producer';
 import { MailerConsumer } from './consumers/mailer.consumer';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailerModule } from '@nestjs-modules/mailer';
 
 @Module({
   imports: [
-    ConfigModule,
-    MailerModule.forRootAsync({
-      useFactory: async (config: ConfigService) => ({
-        transport: {
-          service: 'gmail',
-          auth: {
-            user: config.get('SMTP_USER'),
-            pass: config.get('SMTP_PASS'),
-          },
+    MailerModule.forRoot({
+      transport: {
+        service: 'gmail',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
         },
-        defaults: {
-          from: '"No Reply" <anhhuaan@gmail.com>',
-        },
-      }),
-      inject: [ConfigService],
+      },
+      defaults: {
+        from: '"No Reply" <anhhuaan@gmail.com>',
+      },
     }),
     BullModule.registerQueue({
       name: 'mailer-queue',
