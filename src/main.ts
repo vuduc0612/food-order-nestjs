@@ -36,8 +36,8 @@ async function bootstrap() {
   console.log(`DB_HOST: ${process.env.DB_HOST}`);
   console.log(`DB_PORT: ${process.env.DB_PORT}`);
   console.log(`DB_USERNAME: ${process.env.DB_USERNAME || 'not set'}`);
-  console.log(`DB_PASSWORD: ${process.env.DB_PASSWORD ? '******' : 'not set'}`);
-  console.log(`DB_NAME: ${process.env.DB_NAME || 'not set'}`);
+  console.log(`DB_PASSWORD: ${process.env.DB_PASSWORD ? '12345' : 'not set'}`);
+  console.log(`DB_DATABASE: ${process.env.DB_DATABASE || 'not set'}`);
   console.log(`Current working directory: ${process.cwd()}`);
 
   const app = await NestFactory.create(AppModule);

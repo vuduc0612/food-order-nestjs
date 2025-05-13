@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Account } from 'src/modules/account/entities/account.entities';
 import { AccountRole } from 'src/modules/account_role/entities/account_role.entity';
@@ -12,32 +11,27 @@ import { User } from 'src/modules/user/entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forRootAsync({
-      useFactory: (config: ConfigService) => {
-        return {
-          type: 'mysql',
-          host: config.getOrThrow('DB_HOST'),
-          port: parseInt(config.getOrThrow('DB_PORT'), 10),
-          username: config.getOrThrow('DB_USERNAME'),
-          password: config.getOrThrow('DB_PASSWORD'),
-          database: config.getOrThrow('DB_NAME'),
-          entities: [
-            User,
-            Order,
-            Account,
-            AccountRole,
-            Category,
-            Dish,
-            OrderDetail,
-            Restaurant,
-          ],
-          synchronize: true,
-          dropSchema: false,
-          charset: 'utf8mb4',
-          ssl: false,
-        };
-      },
-      inject: [ConfigService],
+    TypeOrmModule.forRoot({
+      type: 'mysql',
+      host: 'localhost',
+      port: 3306,
+      username: 'root',
+      password: '12345',
+      database: 'food_order_db',
+      entities: [
+        User,
+        Order,
+        Account,
+        AccountRole,
+        Category,
+        Dish,
+        OrderDetail,
+        Restaurant,
+      ],
+      synchronize: true,
+      dropSchema: false,
+      charset: 'utf8mb4',
+      ssl: false,
     }),
   ],
 })
