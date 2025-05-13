@@ -16,7 +16,7 @@ import { User } from 'src/modules/user/entities/user.entity';
       host: 'localhost',
       port: 3306,
       username: 'root',
-      password: '12345',
+      password: '123456',
       database: 'food_order_db',
       entities: [
         User,

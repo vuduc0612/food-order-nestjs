@@ -272,7 +272,7 @@ export class OrderController {
     description: 'Trạng thái đơn hàng đã được cập nhật',
     type: Order 
   })
-  @Roles(RoleType.ADMIN, RoleType.RESTAURANT)
+  @Roles(RoleType.RESTAURANT)
   async updateOrderStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateOrderStatusDto: UpdateOrderStatusDto,
@@ -281,26 +281,8 @@ export class OrderController {
     const { status } = updateOrderStatusDto;
     
     // Kiểm tra quyền cập nhật
-    const order = await this.orderService.getOrderById(id);
-    const userRoles = req.user.roles || [];
+    return this.orderService.updateOrderStatus(id, status);
     
-    // Admin có thể cập nhật tất cả đơn hàng
-    if (userRoles.includes(RoleType.ADMIN)) {
-      return this.orderService.updateOrderStatus(id, status);
-    }
-    
-    // Nhà hàng chỉ cập nhật được đơn hàng của nhà hàng mình
-    if (userRoles.includes(RoleType.RESTAURANT)) {
-      const restaurant = await this.restaurantRepository.findOne({
-        where: { accountId: req.user.id }
-      });
-      
-      if (restaurant && order.restaurant_id === restaurant.id) {
-        return this.orderService.updateOrderStatus(id, status);
-      }
-    }
-    
-    throw new BadRequestException('You do not have permission to update this order');
   }
 
   @Patch(':id/cancel')
