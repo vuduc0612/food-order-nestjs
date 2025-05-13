@@ -14,7 +14,7 @@ const dbHost = process.env.DB_HOST || 'localhost';
 const dbPort = parseInt(process.env.DB_PORT, 10) || 3306;
 const dbUsername = process.env.DB_USERNAME || 'root';
 const dbPassword = process.env.DB_PASSWORD || '12345';
-const dbName = process.env.DB_DATABASE || 'food';
+const dbName = process.env.DB_DATABASE || 'food_order_db';
 
 console.log('Database connection parameters:');
 console.log(`Host: ${dbHost}`);

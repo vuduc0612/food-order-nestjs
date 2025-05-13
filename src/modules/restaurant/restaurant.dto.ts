@@ -24,6 +24,11 @@ export class UpdateRestaurantDto {
   @Length(10, 20)
   @Matches(/^[0-9+]+$/, { message: 'Số điện thoại chỉ được chứa số và dấu +' })
   phone?: string;
+
+  @ApiProperty({ example: 'Nhà hàng Á', description: 'Loại nhà hàng' })
+  @IsString()
+  @IsOptional()
+  type?: string;
 }
 
 export class RestaurantResponseDto {
@@ -50,6 +55,9 @@ export class RestaurantResponseDto {
     description: 'URL ảnh',
   })
   image_url: string;
+
+  @ApiProperty({ example: 'Nhà hàng Á', description: 'Loại nhà hàng' })
+  type: string;
 
   @ApiProperty({ example: 'restaurant@example.com', description: 'Email' })
   email: string;
