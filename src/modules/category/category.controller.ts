@@ -29,10 +29,9 @@ import {
   UpdateCategoryDto,
   CategoryResponseDto,
 } from './category.dto';
+import { Public } from '../auth/decorator/public.decorator';
 
 @ApiTags('Categories')
-@ApiBearerAuth()
-@UseGuards(AuthGuard, RolesGuard)
 @Controller('categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
@@ -45,26 +44,47 @@ export class CategoryController {
     description: 'Danh mục đã được tạo thành công',
     type: CategoryResponseDto,
   })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard, RolesGuard)
   @Roles(RoleType.RESTAURANT)
   async create(@Body() createCategoryDto: CreateCategoryDto, @Req() req) {
     return this.categoryService.create(createCategoryDto, req.user.id);
   }
 
   @Get()
+  @Public()
   @ApiOperation({
-    summary: 'Lấy danh sách danh mục của nhà hàng đang đăng nhập',
+    summary: 'Lấy danh sách tất cả danh mục',
   })
   @ApiResponse({
     status: 200,
     description: 'Danh sách danh mục',
     type: [CategoryResponseDto],
   })
-  @Roles(RoleType.RESTAURANT)
-  async getMyCategories(@Req() req) {
-    return this.categoryService.getCategoriesByAccountId(req.user.id);
+  async getAllCategories(@Req() req) {
+    if (req.user) {
+      return this.categoryService.getCategoriesByAccountId(req.user.id);
+    }
+    return this.categoryService.findAllPublic();
+  }
+  
+  @Public()
+  @Get('restaurant/:id')
+  @ApiOperation({
+    summary: 'Lấy danh sách danh mục theo ID nhà hàng (public endpoint)',
+  })
+  @ApiParam({ name: 'id', description: 'ID của nhà hàng' })
+  @ApiResponse({
+    status: 200,
+    description: 'Danh sách danh mục của nhà hàng',
+    type: [CategoryResponseDto],
+  })
+  async getCategoriesByRestaurant(@Param('id', ParseIntPipe) restaurantId: number) {
+    return this.categoryService.getCategoriesByRestaurantId(restaurantId);
   }
 
   @Get(':id')
+  @Public()
   @ApiOperation({ summary: 'Lấy thông tin danh mục theo ID' })
   @ApiParam({ name: 'id', description: 'ID của danh mục' })
   @ApiResponse({
@@ -72,24 +92,29 @@ export class CategoryController {
     description: 'Thông tin danh mục',
     type: CategoryResponseDto,
   })
-  @Roles(RoleType.RESTAURANT)
   async findOne(@Param('id', ParseIntPipe) id: number, @Req() req) {
     const category = await this.categoryService.findById(id);
 
-    // Đảm bảo category có thuộc tính restaurant
-    if (!category.restaurant) {
-      throw new BadRequestException('Danh mục không hợp lệ');
+    if (!category) {
+      throw new BadRequestException('Danh mục không tồn tại');
     }
 
-    // Kiểm tra xem category có thuộc về nhà hàng của người dùng không
-    const restaurantId = await this.categoryService.getRestaurantIdByAccountId(
-      req.user.id,
-    );
+    if (req.user) {
+      // Đảm bảo category có thuộc tính restaurant
+      if (!category.restaurant) {
+        throw new BadRequestException('Danh mục không hợp lệ');
+      }
 
-    if (category.restaurant.id !== restaurantId) {
-      throw new BadRequestException(
-        'Bạn không có quyền xem thông tin danh mục này',
+      // Kiểm tra xem category có thuộc về nhà hàng của người dùng không
+      const restaurantId = await this.categoryService.getRestaurantIdByAccountId(
+        req.user.id,
       );
+
+      if (category.restaurant.id !== restaurantId) {
+        throw new BadRequestException(
+          'Bạn không có quyền xem thông tin danh mục này',
+        );
+      }
     }
 
     return category;
@@ -104,6 +129,8 @@ export class CategoryController {
     description: 'Thông tin danh mục sau khi cập nhật',
     type: CategoryResponseDto,
   })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard, RolesGuard)
   @Roles(RoleType.RESTAURANT)
   async update(
     @Param('id', ParseIntPipe) id: number,
@@ -129,6 +156,7 @@ export class CategoryController {
     return this.categoryService.update(id, updateCategoryDto);
   }
 
+
   @Delete(':id')
   @ApiOperation({ summary: 'Xóa danh mục' })
   @ApiParam({ name: 'id', description: 'ID của danh mục' })
@@ -136,6 +164,8 @@ export class CategoryController {
     status: 200,
     description: 'Danh mục đã được xóa thành công',
   })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard, RolesGuard)
   @Roles(RoleType.RESTAURANT)
   async remove(@Param('id', ParseIntPipe) id: number, @Req() req) {
     await this.categoryService.remove(id, req.user.id);

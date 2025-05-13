@@ -9,11 +9,10 @@ import { AccountModule } from '../account/account.module';
 import { CloudinaryModule } from '../../base/cloudinary/cloudinary.module';
 import { DishModule } from '../dish/dish.module';
 import { CategoryModule } from '../category/category.module';
-import { Category } from '../category/entities/category.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Restaurant, Account, Category]),
+    TypeOrmModule.forFeature([Restaurant, Account]),
     AuthModule,
     AccountModule,
     CloudinaryModule,

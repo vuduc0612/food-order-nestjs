@@ -5,7 +5,6 @@ import {
   Patch,
   Param,
   Delete,
-  UseGuards,
   ParseIntPipe,
   Query,
   Req,
@@ -15,13 +14,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { DishService } from './dish.service';
-import { AuthGuard } from '../auth/guard/auth.guard';
-import { RolesGuard } from '../auth/guard/roles.guard';
-import { Roles } from '../auth/decorator/roles.decorator';
-import { RoleType } from '../account_role/enums/role-type.enum';
 import {
   ApiTags,
-  ApiBearerAuth,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -35,10 +29,9 @@ import { CloudinaryService } from 'src/base/cloudinary/cloudinary.service';
 import * as Multer from 'multer';
 import { Public } from '../auth/decorator/public.decorator';
 
+@Public()
 @ApiTags('Dishes')
-@ApiBearerAuth()
 @Controller('dishes')
-@UseGuards(AuthGuard, RolesGuard)
 export class DishController {
   constructor(
     private readonly dishService: DishService,
@@ -66,7 +59,6 @@ export class DishController {
     description: 'Danh sách món ăn',
     type: PageDto,
   })
-  @Roles(RoleType.RESTAURANT)
   async getAllDishes(
     @Query('page') page: number = 0,
     @Query('limit') limit: number = 10,
@@ -102,7 +94,6 @@ export class DishController {
     description: 'Danh sách món ăn',
     type: PageDto,
   })
-  @Roles(RoleType.RESTAURANT)
   async getAllDishByRestaurant(
     @Param('restaurantId', ParseIntPipe) restaurantId: number,
     @Query('page') page: number = 0,
@@ -136,7 +127,6 @@ export class DishController {
     description: 'Danh sách món ăn',
     type: PageDto,
   })
-  @Roles(RoleType.RESTAURANT)
   async getAllDishByCategory(
     @Param('categoryId', ParseIntPipe) categoryId: number,
     @Query('page') page: number = 0,
@@ -151,6 +141,42 @@ export class DishController {
     );
   }
 
+  @Get('public-category/:categoryId')
+  @ApiOperation({
+    summary: 'Lấy danh sách món ăn trong danh mục không cần ID nhà hàng (có phân trang)',
+  })
+  @ApiParam({ name: 'categoryId', description: 'ID của danh mục' })
+  @ApiQuery({
+    name: 'page',
+    description: 'Số trang (bắt đầu từ 0)',
+    type: Number,
+    required: false,
+    example: 0,
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: 'Số lượng kết quả mỗi trang',
+    type: Number,
+    required: false,
+    example: 10,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Danh sách món ăn',
+    type: PageDto,
+  })
+  async getPublicDishByCategory(
+    @Param('categoryId', ParseIntPipe) categoryId: number,
+    @Query('page') page: number = 0,
+    @Query('limit') limit: number = 10,
+  ): Promise<PageDto<DishDto>> {
+    return this.dishService.getPublicDishByCategory(
+      categoryId,
+      page,
+      limit,
+    );
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Lấy thông tin món ăn theo ID' })
   @ApiParam({ name: 'id', description: 'ID của món ăn' })
@@ -159,12 +185,10 @@ export class DishController {
     description: 'Thông tin món ăn',
     type: DishDto,
   })
-  @Roles(RoleType.RESTAURANT)
   async getDishById(@Param('id', ParseIntPipe) id: number): Promise<DishDto> {
     return this.dishService.getDishById(id);
   }
 
-  @Public()
   @Post()
   @ApiOperation({ summary: 'Tạo mới món ăn' })
   @ApiConsumes('multipart/form-data')
@@ -248,7 +272,6 @@ export class DishController {
     type: DishDto,
   })
   @UseInterceptors(FileInterceptor('thumbnail'))
-  @Roles(RoleType.RESTAURANT)
   async updateDish(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDishDto: UpdateDishDto,
@@ -281,7 +304,6 @@ export class DishController {
     status: 200,
     description: 'Món ăn đã được xoá thành công',
   })
-  @Roles(RoleType.RESTAURANT)
   async deleteDish(
     @Param('id', ParseIntPipe) id: number,
     @Req() req,
@@ -296,7 +318,6 @@ export class DishController {
     description: 'Dữ liệu mẫu đã được tạo thành công',
     type: [DishDto],
   })
-  @Roles(RoleType.RESTAURANT)
   async seedFakeData(@Req() req): Promise<DishDto[]> {
     return this.dishService.seedFakeData(req.user.id);
   }
