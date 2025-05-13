@@ -138,6 +138,12 @@ export class RestaurantController {
     required: false,
     type: Number,
   })
+  @ApiQuery({
+    name: 'keyword',
+    description: 'Từ khóa tìm kiếm',
+    required: false,
+    type: String,
+  })
   @ApiResponse({
     status: 200,
     description: 'Danh sách nhà hàng',
@@ -146,8 +152,9 @@ export class RestaurantController {
   async findAll(
     @Query('page') page: number = 0,
     @Query('limit') limit: number = 10,
+    @Query('keyword') keyword: string = '',
   ) {
-    return this.restaurantService.getAllRestaurants(page, limit);
+    return this.restaurantService.getAllRestaurants(page, limit, keyword);
   }
 
   @Public()

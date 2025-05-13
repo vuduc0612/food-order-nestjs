@@ -103,23 +103,69 @@ export class RestaurantService {
    * Lấy tất cả nhà hàng có phân trang
    * @param page Số trang (bắt đầu từ 0)
    * @param limit Số lượng kết quả mỗi trang
+   * @param keyword Từ khóa tìm kiếm
    */
-  async getAllRestaurants(page: number = 0, limit: number = 10) {
+  async getAllRestaurants(page: number = 0, limit: number = 10, keyword: string = '') {
     const skip = page * limit;
     
-    const [restaurants, total] = await this.restaurantRepository.findAndCount({
-      skip,
-      take: limit,
-      relations: ['account'],
-      order: {
-        id: 'DESC', // Lấy nhà hàng mới nhất trước
-      },
-    });
-
+    // Nếu không có từ khóa, sử dụng cách truy vấn đơn giản
+    if (!keyword || keyword.trim().length === 0) {
+      const [restaurants, total] = await this.restaurantRepository.findAndCount({
+        skip,
+        take: limit,
+        relations: ['account'],
+        order: {
+          id: 'DESC',
+        },
+      });
+      
+      // Convert restaurants to DTOs
+      const restaurantDtos = [];
+      for (const restaurant of restaurants) {
+        restaurantDtos.push({
+          id: restaurant.id,
+          account_id: restaurant.account?.id,
+          name: restaurant.name,
+          description: restaurant.description,
+          address: restaurant.address,
+          phone: restaurant.phone,
+          image_url: restaurant.image_url,
+          type: restaurant.type,
+          email: restaurant.account?.email,
+        });
+      }
+      
+      return {
+        content: restaurantDtos,
+        number: page,
+        size: limit,
+        totalElements: total,
+        totalPages: Math.ceil(total / limit),
+      };
+    }
+    
+    // Nếu có từ khóa, sử dụng queryBuilder để tìm kiếm phức tạp hơn
+    const searchTerm = `%${keyword.trim()}%`;
+    const queryBuilder = this.restaurantRepository.createQueryBuilder('restaurant')
+      .leftJoinAndSelect('restaurant.account', 'account')
+      .leftJoin('restaurant.dishes', 'dish'); // Join với dishes
+    
+    queryBuilder.where(
+      '(restaurant.name LIKE :keyword OR dish.name LIKE :keyword)',
+      { keyword: searchTerm }
+    );
+    
+    queryBuilder
+      .orderBy('restaurant.id', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .distinct(true);
+    
+    const [restaurants, total] = await queryBuilder.getManyAndCount();
+    
     // Convert restaurants to DTOs
     const restaurantDtos = [];
     for (const restaurant of restaurants) {
-      // Không lấy dishes để tăng hiệu suất
       restaurantDtos.push({
         id: restaurant.id,
         account_id: restaurant.account?.id,
@@ -132,7 +178,7 @@ export class RestaurantService {
         email: restaurant.account?.email,
       });
     }
-
+    
     return {
       content: restaurantDtos,
       number: page,

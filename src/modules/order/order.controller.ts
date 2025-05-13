@@ -67,7 +67,7 @@ export class OrderController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Lấy danh sách đơn hàng (admin)' })
+  @ApiOperation({ summary: 'Lấy danh sách đơn hàng (restaurant)' })
   @ApiQuery({ 
     name: 'page', 
     required: false, 
@@ -219,38 +219,14 @@ export class OrderController {
     description: 'Thông tin chi tiết đơn hàng',
     type: OrderResponseDto 
   })
-  @Roles(RoleType.ADMIN, RoleType.CUSTOMER, RoleType.RESTAURANT)
+  @Roles(RoleType.CUSTOMER, RoleType.RESTAURANT)
   async getOrderById(
     @Param('id', ParseIntPipe) id: number,
     @Req() req
   ) {
     console.log(`Getting order details for ID: ${id}`);
     const order = await this.orderService.getOrderById(id);
-    
-    // Kiểm tra quyền xem đơn hàng
-    const userRoles = req.user.roles || [];
-    
-    // Admin có thể xem tất cả đơn hàng
-    if (userRoles.includes(RoleType.ADMIN)) {
-      return this.mapOrderToResponse(order);
-    }
-    
-    // Khách hàng chỉ xem được đơn hàng của mình
-    const currentUser = await this.userService.getCurrentUser(req.user.id);
-    if (userRoles.includes(RoleType.CUSTOMER) && order.user_id === currentUser.id) {
-      return this.mapOrderToResponse(order);
-    }
-    
-    // Nhà hàng chỉ xem được đơn hàng của nhà hàng mình
-    if (userRoles.includes(RoleType.RESTAURANT)) {
-      const restaurant = await this.restaurantRepository.findOne({
-        where: { accountId: req.user.id }
-      });
-      
-      if (restaurant && order.restaurant_id === restaurant.id) {
-        return this.mapOrderToResponse(order);
-      }
-    }
+    return this.mapOrderToResponse(order);
     
     throw new BadRequestException('You do not have permission to view this order');
   }
