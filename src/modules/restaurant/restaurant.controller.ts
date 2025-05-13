@@ -11,6 +11,7 @@ import {
   UploadedFile,
   Req,
   Body,
+  Query,
 } from '@nestjs/common';
 import { RestaurantService } from './restaurant.service';
 import { AuthGuard } from '../auth/guard/auth.guard';
@@ -25,6 +26,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiResponse,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from 'src/base/cloudinary/cloudinary.service';
@@ -57,6 +59,55 @@ export class RestaurantController {
     return this.restaurantService.getCurrentRestaurant(req.user.id);
   }
 
+  @Public()
+  @Get('public/:id')
+  @ApiOperation({
+    summary: 'Lấy thông tin nhà hàng theo ID (public endpoint không cần đăng nhập)',
+  })
+  @ApiParam({ name: 'id', description: 'ID của nhà hàng' })
+  @ApiResponse({
+    status: 200,
+    description: 'Thông tin nhà hàng và danh sách món ăn',
+    type: RestaurantResponseDto,
+  })
+  async getPublicRestaurantById(@Param('id', ParseIntPipe) id: number) {
+    return this.restaurantService.getRestaurantWithDishes(id);
+  }
+
+  @Public()
+  @Get('by-type')
+  @ApiOperation({ summary: 'Lấy danh sách nhà hàng theo loại (có phân trang)' })
+  @ApiQuery({ 
+    name: 'type', 
+    description: 'Loại nhà hàng cần tìm', 
+    required: true,
+    type: String,
+  })
+  @ApiQuery({ 
+    name: 'page', 
+    description: 'Số trang (bắt đầu từ 0)', 
+    required: false,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: 'Số lượng kết quả mỗi trang',
+    required: false,
+    type: Number,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Danh sách nhà hàng theo loại',
+    type: [RestaurantResponseDto],
+  })
+  async findByType(
+    @Query('type') type: string,
+    @Query('page') page: number = 0,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.restaurantService.getRestaurantsByType(type, page, limit);
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Lấy thông tin nhà hàng theo ID cùng danh sách món ăn',
@@ -70,6 +121,33 @@ export class RestaurantController {
   @Roles(RoleType.RESTAURANT)
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.restaurantService.getRestaurantWithDishes(id);
+  }
+
+  @Public()
+  @Get()
+  @ApiOperation({ summary: 'Lấy danh sách tất cả nhà hàng (có phân trang)' })
+  @ApiQuery({ 
+    name: 'page', 
+    description: 'Số trang (bắt đầu từ 0)', 
+    required: false,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: 'Số lượng kết quả mỗi trang',
+    required: false,
+    type: Number,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Danh sách nhà hàng',
+    type: [RestaurantResponseDto],
+  })
+  async findAll(
+    @Query('page') page: number = 0,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.restaurantService.getAllRestaurants(page, limit);
   }
 
   @Public()

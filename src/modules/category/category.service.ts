@@ -97,6 +97,40 @@ export class CategoryService {
     return restaurant.id;
   }
 
+  async findAllPublic(): Promise<CategoryResponseDto[]> {
+    const categories = await this.categoryRepository.find({
+      relations: ['restaurant'],
+    });
+
+    return categories.map((category) => ({
+      id: category.id,
+      restaurant_id: category.restaurant ? category.restaurant.id : null,
+      name: category.name,
+    }));
+  }
+
+  /**
+   * Get categories by restaurant ID
+   */
+  async getCategoriesByRestaurantId(restaurantId: number): Promise<CategoryResponseDto[]> {
+    try {
+      const categories = await this.categoryRepository.find({
+        where: { restaurant: { id: restaurantId } },
+        relations: ['restaurant'],
+      });
+  
+      return categories.map((category) => ({
+        id: category.id,
+        restaurant_id: category.restaurant ? category.restaurant.id : null,
+        name: category.name,
+      }));
+    } catch (error) {
+      console.error(`Error getting categories for restaurant ID: ${restaurantId}`, error);
+      // Return empty array instead of throwing error to provide more graceful handling for frontend
+      return [];
+    }
+  }
+
   /**
    * Helper: Find restaurant by account ID
    */

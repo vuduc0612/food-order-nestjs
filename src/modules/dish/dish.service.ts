@@ -61,6 +61,30 @@ export class DishService {
     });
   }
 
+  async getPublicDishByCategory(
+    categoryId: number,
+    page: number,
+    limit: number,
+  ): Promise<PageDto<DishDto>> {
+    // Kiểm tra nếu danh mục tồn tại
+    const category = await this.categoryRepository.findOne({
+      where: { id: categoryId },
+    });
+
+    if (!category) {
+      throw new NotFoundException(`Category with ID ${categoryId} not found`);
+    }
+
+    // Lấy tất cả các món ăn trong danh mục này mà không cần kiểm tra nhà hàng
+    return this.getPaginatedDishes({
+      page,
+      limit,
+      where: {
+        category: { id: categoryId },
+      },
+    });
+  }
+
   async getDishById(id: number): Promise<DishDto> {
     const dish = await this.dishRepository.findOne({
       where: { id },

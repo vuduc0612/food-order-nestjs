@@ -31,6 +31,9 @@ export class Restaurant {
   @Column({ type: 'varchar', length: 255, nullable: true })
   image_url: string;
 
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  type: string;
+
   @Column({ name: 'account_id', type: 'int' })
   accountId: number;
 
