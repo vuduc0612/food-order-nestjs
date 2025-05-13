@@ -63,9 +63,8 @@ export class DishController {
   async getAllDishes(
     @Query('page') page: number = 0,
     @Query('limit') limit: number = 10,
-    @Req() req,
   ): Promise<PageDto<DishDto>> {
-    return this.dishService.getAllDishByRestaurant(req.user.id, page, limit);
+    return this.dishService.getAllDishes(page, limit);
   }
 
   @Get('restaurant/:restaurantId')
@@ -286,7 +285,6 @@ export class DishController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDishDto: UpdateDishDto,
     @UploadedFile() file: Multer.File,
-    @Req() req,
   ): Promise<DishDto> {
     // Nếu có file ảnh
     if (file) {

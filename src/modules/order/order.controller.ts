@@ -28,7 +28,7 @@ import { Roles } from '../auth/decorator/roles.decorator';
 import { RoleType } from '../account_role/enums/role-type.enum';
 import { OrderStatus } from './enums/order-status.enum';
 import { UserService } from '../user/user.service';
-import { CreateOrderNoteDto, UpdateOrderStatusDto } from './order.dto';
+import { CreateOrderNoteDto, UpdateOrderStatusDto, OrdersPageResponseDto, OrderResponseDto } from './order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Restaurant } from '../restaurant/entities/restaurant.entity';
@@ -81,15 +81,32 @@ export class OrderController {
   @ApiResponse({ 
     status: 200, 
     description: 'Danh sách đơn hàng',
-    type: [Order] 
+    type: OrdersPageResponseDto 
   })
-  @Roles(RoleType.ADMIN)
+  @Roles(RoleType.RESTAURANT)
   async getAllOrders(
     @Query('page') page: number = 0,
     @Query('limit') limit: number = 10
-  ): Promise<{ orders: Order[], total: number }> {
+  ) {
+    console.log(`Controller: getAllOrders called with page=${page}, limit=${limit}`);
+    
     const [orders, total] = await this.orderService.getAllOrders(page, limit);
-    return { orders, total };
+    console.log(`Received ${orders.length} orders from service, total: ${total}`);
+    
+    // Chuyển đổi orders sang dạng DTO
+    const enhancedOrders = orders.map(order => this.mapOrderToResponse(order));
+    
+    const response = { 
+      content: enhancedOrders, 
+      total,
+      page,
+      size: limit,
+      totalPages: Math.ceil(total / limit)
+    };
+    
+    console.log(`Returning response with ${enhancedOrders.length} orders, totalPages: ${Math.ceil(total / limit)}`);
+    
+    return response;
   }
 
   @Get('my-orders')
@@ -107,17 +124,36 @@ export class OrderController {
   @ApiResponse({ 
     status: 200, 
     description: 'Danh sách đơn hàng của người dùng',
-    type: [Order] 
+    type: OrdersPageResponseDto 
   })
   @Roles(RoleType.CUSTOMER)
   async getMyOrders(
     @Req() req,
     @Query('page') page: number = 0,
     @Query('limit') limit: number = 10
-  ): Promise<{ orders: Order[], total: number }> {
+  ) {
+    console.log(`Controller: getMyOrders called with page=${page}, limit=${limit}`);
+    
     const currentUser = await this.userService.getCurrentUser(req.user.id);
+    console.log(`Current user ID: ${currentUser.id}`);
+    
     const [orders, total] = await this.orderService.getUserOrders(currentUser.id, page, limit);
-    return { orders, total };
+    console.log(`Received ${orders.length} orders from service, total: ${total}`);
+    
+    // Chuyển đổi orders sang dạng DTO
+    const enhancedOrders = orders.map(order => this.mapOrderToResponse(order));
+    
+    const response = { 
+      content: enhancedOrders, 
+      total,
+      page,
+      size: limit,
+      totalPages: Math.ceil(total / limit)
+    };
+    
+    console.log(`Returning response with ${enhancedOrders.length} orders, totalPages: ${Math.ceil(total / limit)}`);
+    
+    return response;
   }
 
   @Get('restaurant-orders')
@@ -135,14 +171,16 @@ export class OrderController {
   @ApiResponse({ 
     status: 200, 
     description: 'Danh sách đơn hàng của nhà hàng',
-    type: [Order] 
+    type: OrdersPageResponseDto 
   })
   @Roles(RoleType.RESTAURANT)
   async getRestaurantOrders(
     @Req() req,
     @Query('page') page: number = 0,
     @Query('limit') limit: number = 10
-  ): Promise<{ orders: Order[], total: number }> {
+  ) {
+    console.log(`Controller: getRestaurantOrders called with page=${page}, limit=${limit}`);
+    
     // Lấy nhà hàng của user hiện tại
     const restaurant = await this.restaurantRepository.findOne({
       where: { accountId: req.user.id }
@@ -152,8 +190,25 @@ export class OrderController {
       throw new BadRequestException('User is not associated with any restaurant');
     }
     
+    console.log(`Found restaurant ID: ${restaurant.id} for account ID: ${req.user.id}`);
+    
     const [orders, total] = await this.orderService.getRestaurantOrders(restaurant.id, page, limit);
-    return { orders, total };
+    console.log(`Received ${orders.length} orders from service, total: ${total}`);
+    
+    // Chuyển đổi orders sang dạng DTO
+    const enhancedOrders = orders.map(order => this.mapOrderToResponse(order));
+    
+    const response = { 
+      content: enhancedOrders, 
+      total,
+      page,
+      size: limit,
+      totalPages: Math.ceil(total / limit)
+    };
+    
+    console.log(`Returning response with ${enhancedOrders.length} orders, totalPages: ${Math.ceil(total / limit)}`);
+    
+    return response;
   }
 
   @Get(':id')
@@ -162,13 +217,14 @@ export class OrderController {
   @ApiResponse({ 
     status: 200, 
     description: 'Thông tin chi tiết đơn hàng',
-    type: Order 
+    type: OrderResponseDto 
   })
   @Roles(RoleType.ADMIN, RoleType.CUSTOMER, RoleType.RESTAURANT)
   async getOrderById(
     @Param('id', ParseIntPipe) id: number,
     @Req() req
-  ): Promise<Order> {
+  ) {
+    console.log(`Getting order details for ID: ${id}`);
     const order = await this.orderService.getOrderById(id);
     
     // Kiểm tra quyền xem đơn hàng
@@ -176,13 +232,13 @@ export class OrderController {
     
     // Admin có thể xem tất cả đơn hàng
     if (userRoles.includes(RoleType.ADMIN)) {
-      return order;
+      return this.mapOrderToResponse(order);
     }
     
     // Khách hàng chỉ xem được đơn hàng của mình
     const currentUser = await this.userService.getCurrentUser(req.user.id);
     if (userRoles.includes(RoleType.CUSTOMER) && order.user_id === currentUser.id) {
-      return order;
+      return this.mapOrderToResponse(order);
     }
     
     // Nhà hàng chỉ xem được đơn hàng của nhà hàng mình
@@ -192,11 +248,43 @@ export class OrderController {
       });
       
       if (restaurant && order.restaurant_id === restaurant.id) {
-        return order;
+        return this.mapOrderToResponse(order);
       }
     }
     
     throw new BadRequestException('You do not have permission to view this order');
+  }
+  
+  /**
+   * Chuyển đổi đối tượng Order thành OrderResponseDto
+   */
+  private mapOrderToResponse(order: Order): OrderResponseDto {
+    const { restaurant, orderDetails, ...orderData } = order;
+    
+    return {
+      ...orderData,
+      restaurant: restaurant ? {
+        id: restaurant.id,
+        name: restaurant.name,
+        image_url: restaurant.image_url,
+        address: restaurant.address,
+        phone: restaurant.phone
+      } : null,
+      items: orderDetails ? orderDetails.map(detail => ({
+        id: detail.id,
+        dish_id: detail.dish_id,
+        dish_name: detail.dish?.name || 'Unknown',
+        dish_thumbnail: detail.dish?.thumbnail || null,
+        quantity: detail.quantity,
+        price: detail.price,
+        subtotal: detail.quantity * Number(detail.price)
+      })) : [],
+      created_at: order.created_at,
+      updated_at: order.updated_at,
+      totalItems: orderDetails ? orderDetails.reduce(
+        (sum, detail) => sum + detail.quantity, 0
+      ) : 0
+    };
   }
 
   @Patch(':id/status')

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseModule } from './base/database/database.module';
 import { BullModule } from '@nestjs/bull';
 import { AccountModule } from './modules/account/account.module';
@@ -26,17 +26,21 @@ import { redisStore } from 'cache-manager-redis-yet';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
     }),
     CacheModule.registerAsync({
       isGlobal: true,
-      useFactory: async () => {
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => {
+        const redisHost = configService.get<string>('REDIS_HOST');
+        const redisPort = Number(configService.get<string>('REDIS_PORT'));
+        const redisPassword = configService.get<string>('REDIS_PASSWORD');
+
         const store = await redisStore({
           socket: {
-            host: process.env.REDIS_HOST || 'localhost',
-            port: parseInt(process.env.REDIS_PORT, 10) || 6379,
+            host: redisHost,
+            port: redisPort,
           },
-          password: process.env.REDIS_PASSWORD || undefined,
+          password: redisPassword,
           ttl: 60 * 60 * 24 * 7, // 7 days
         });
 
@@ -44,21 +48,26 @@ import { redisStore } from 'cache-manager-redis-yet';
           store: store,
         };
       },
+      inject: [ConfigService],
     }),
-    BullModule.forRoot({
-      redis: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT, 10) || 6379,
-        password: process.env.REDIS_PASSWORD || undefined,
-      },
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 1000,
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        redis: {
+          host: configService.get<string>('REDIS_HOST'),
+          port: Number(configService.get<number>('REDIS_PORT')),
+          password: configService.get<string>('REDIS_PASSWORD'),
         },
-        removeOnComplete: true,
-      },
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 1000,
+          },
+          removeOnComplete: true,
+        },
+      }),
+      inject: [ConfigService],
     }),
     TypeOrmModule.forFeature([Account]),
     DatabaseModule,

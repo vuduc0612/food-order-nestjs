@@ -86,10 +86,103 @@ export class CreateOrderNoteDto {
 
 export class UpdateOrderStatusDto {
   @ApiProperty({ 
-    example: OrderStatus.PROCESSING, 
-    description: 'New order status',
+    example: OrderStatus.CONFIRMED, 
+    description: 'Order status',
     enum: OrderStatus
   })
   @IsEnum(OrderStatus)
   status: OrderStatus;
+}
+
+// DTOs mới cho response
+export class OrderItemDto {
+  @ApiProperty({ example: 1 })
+  id: number;
+  
+  @ApiProperty({ example: 2 })
+  dish_id: number;
+  
+  @ApiProperty({ example: 'Gà rán sốt cay' })
+  dish_name: string;
+  
+  @ApiProperty({ example: 'https://example.com/image.jpg' })
+  dish_thumbnail: string;
+  
+  @ApiProperty({ example: 2 })
+  quantity: number;
+  
+  @ApiProperty({ example: 75000 })
+  price: number;
+  
+  @ApiProperty({ example: 150000 })
+  subtotal: number;
+}
+
+export class RestaurantInfoDto {
+  @ApiProperty({ example: 1 })
+  id: number;
+  
+  @ApiProperty({ example: 'Nhà hàng ABC' })
+  name: string;
+  
+  @ApiProperty({ example: 'https://example.com/restaurant.jpg' })
+  image_url: string;
+  
+  @ApiProperty({ example: '123 Nguyễn Huệ, Quận 1, TP.HCM' })
+  address: string;
+  
+  @ApiProperty({ example: '0123456789' })
+  phone: string;
+}
+
+export class OrderResponseDto {
+  @ApiProperty({ example: 1 })
+  id: number;
+  
+  @ApiProperty({ example: 2 })
+  user_id: number;
+  
+  @ApiProperty({ example: 3 })
+  restaurant_id: number;
+  
+  @ApiProperty({ example: 165000 })
+  total_price: number;
+  
+  @ApiProperty({ example: OrderStatus.PENDING, enum: OrderStatus })
+  status: string;
+  
+  @ApiProperty({ example: 'Giao vào buổi trưa' })
+  note: string;
+  
+  @ApiProperty()
+  restaurant: RestaurantInfoDto;
+  
+  @ApiProperty({ type: [OrderItemDto] })
+  items: OrderItemDto[];
+  
+  @ApiProperty({ example: '2023-03-27T10:30:00.000Z' })
+  created_at: Date;
+  
+  @ApiProperty({ example: '2023-03-27T10:45:00.000Z' })
+  updated_at: Date;
+  
+  @ApiProperty({ example: 3 })
+  totalItems: number;
+}
+
+export class OrdersPageResponseDto {
+  @ApiProperty({ type: [OrderResponseDto] })
+  content: OrderResponseDto[];
+  
+  @ApiProperty({ example: 20 })
+  total: number;
+  
+  @ApiProperty({ example: 0 })
+  page: number;
+  
+  @ApiProperty({ example: 10 })
+  size: number;
+  
+  @ApiProperty({ example: 2 })
+  totalPages: number;
 }
