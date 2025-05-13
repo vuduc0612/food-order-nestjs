@@ -223,6 +223,21 @@ export class UpdateDishDto {
   @IsOptional()
   @IsBoolean()
   isAvailable?: boolean;
+  
+  @ApiProperty({ 
+    example: 1, 
+    description: 'ID của nhà hàng (bắt buộc khi cập nhật món ăn không có đăng nhập)',
+    required: false
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return parseInt(value, 10);
+    }
+    return value;
+  })
+  @IsNumber()
+  restaurantId?: number;
 }
 
 export class PageDto<T> {

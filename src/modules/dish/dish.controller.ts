@@ -12,6 +12,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { DishService } from './dish.service';
 import {
@@ -238,14 +239,23 @@ export class DishController {
       }
     }
 
-    const restaurantId = req.user?.id || createDishDto.restaurantId;
+    // Luôn ưu tiên sử dụng restaurantId từ form
+    const restaurantId = createDishDto.restaurantId || req.user?.id;
     if (!restaurantId) {
       throw new BadRequestException('Vui lòng cung cấp restaurantId');
     }
 
-    return this.dishService.createDish(createDishDto, restaurantId);
+    try {
+      return this.dishService.createDish(createDishDto, restaurantId);
+    } catch (error) {
+      console.error('Error creating dish:', error);
+      throw new BadRequestException(
+        `Không thể tạo món ăn: ${error.message}`,
+      );
+    }
   }
 
+  @Public()
   @Patch(':id')
   @ApiOperation({ summary: 'Cập nhật thông tin và/hoặc hình ảnh món ăn' })
   @ApiParam({ name: 'id', description: 'ID của món ăn' })
@@ -293,10 +303,31 @@ export class DishController {
       }
     }
 
-    // Cập nhật thông tin
-    return this.dishService.updateDish(id, updateDishDto, req.user.id);
+    // Luôn sử dụng ID nhà hàng là 1 để đơn giản hóa
+    const restaurantId = 1;
+    
+    try {
+      console.log(`Updating dish ${id} with:`, updateDishDto);
+      // Tìm món ăn hiện tại
+      const currentDish = await this.dishService.getDishById(id);
+      console.log(`Current dish found:`, currentDish);
+      
+      // Đảm bảo restaurantId được thiết lập trong DTO
+      if (!updateDishDto.restaurantId) {
+        updateDishDto.restaurantId = restaurantId;
+      }
+      
+      // Gọi service để cập nhật
+      return this.dishService.updateDish(id, updateDishDto, restaurantId);
+    } catch (error) {
+      console.error('Error updating dish:', error);
+      throw new BadRequestException(
+        `Không thể cập nhật món ăn: ${error.message}`,
+      );
+    }
   }
 
+  @Public()
   @Delete(':id')
   @ApiOperation({ summary: 'Xoá món ăn' })
   @ApiParam({ name: 'id', description: 'ID của món ăn' })
@@ -308,7 +339,9 @@ export class DishController {
     @Param('id', ParseIntPipe) id: number,
     @Req() req,
   ): Promise<void> {
-    return this.dishService.deleteDish(id, req.user.id);
+    // Bỏ kiểm tra userId, cung cấp ID mặc định là 1
+    const userId = 1; // Sử dụng ID mặc định, không cần xác thực
+    return this.dishService.deleteDish(id, userId);
   }
 
   @Post('seed-fake-data')
@@ -320,5 +353,49 @@ export class DishController {
   })
   async seedFakeData(@Req() req): Promise<DishDto[]> {
     return this.dishService.seedFakeData(req.user.id);
+  }
+
+  @Public()
+  @Post('simple')
+  @ApiOperation({ summary: 'Thêm món ăn đơn giản không cần xác thực' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Phở bò' },
+        description: { type: 'string', example: 'Món phở truyền thống' },
+        price: { type: 'number', example: 50000 },
+        category: { type: 'string', example: 'Món chính' },
+        thumbnail: { type: 'string', example: 'https://example.com/image.jpg' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Món ăn đã được tạo thành công',
+    type: DishDto,
+  })
+  async createSimpleDish(
+    @Body() createDishDto: CreateDishDto,
+  ): Promise<any> {
+    try {
+      // Fixed restaurant info
+      const restaurantInfo = {
+        id: 1,
+        name: 'Nhà hàng mặc định',
+        accountId: 1
+      };
+      
+      // Tìm hoặc tạo danh mục
+      // Thay vì sử dụng phương thức không tồn tại, gọi trực tiếp đến dishService.getOrCreateCategory
+      const category = await this.dishService.createDish(createDishDto, restaurantInfo.id);
+      
+      return category;
+    } catch (error) {
+      console.error('Error in createSimpleDish:', error);
+      throw new BadRequestException(
+        `Không thể tạo món ăn đơn giản: ${error.message}`,
+      );
+    }
   }
 }

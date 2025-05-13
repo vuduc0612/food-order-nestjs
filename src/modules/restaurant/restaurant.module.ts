@@ -23,4 +23,5 @@ import { CategoryModule } from '../category/category.module';
   providers: [RestaurantService],
   exports: [RestaurantService],
 })
+
 export class RestaurantModule {}
