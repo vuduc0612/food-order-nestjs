@@ -113,13 +113,63 @@ export class OrderService {
   }
 
   async getUserOrders(userId: number, page: number = 0, limit: number = 10): Promise<[Order[], number]> {
-    return this.orderRepository.findAndCount({
-      where: { user_id: userId },
-      relations: ['user', 'restaurant', 'orderDetails', 'orderDetails.dish'],
-      order: { created_at: 'DESC' },
-      skip: page * limit,
-      take: limit,
-    });
+    console.log(`Getting orders for user ${userId}, page: ${page}, limit: ${limit}`);
+    
+    // Nếu page bắt đầu từ 1, điều chỉnh về 0 để tương thích với cơ sở dữ liệu
+    const adjustedPage = page > 0 ? page - 1 : 0;
+    console.log(`Adjusted page: ${adjustedPage}`);
+    
+    try {
+      // Sử dụng findAndCount để đảm bảo nạp đầy đủ các mối quan hệ
+      const [orders, count] = await this.orderRepository.findAndCount({
+        where: { user_id: userId },
+        relations: {
+          restaurant: true,
+          orderDetails: {
+            dish: true
+          }
+        },
+        order: { created_at: 'DESC' },
+        skip: adjustedPage * limit,
+        take: limit,
+      });
+      
+      console.log(`Found ${orders.length} orders out of ${count} total`);
+      
+      // Xử lý trường hợp không có order ở trang hiện tại
+      if (orders.length === 0 && count > 0 && page > 0) {
+        console.log('WARNING: No orders found for this page, but total count > 0');
+        console.log('Trying with page 0 instead');
+        return this.getUserOrders(userId, 0, limit);
+      }
+
+      // Tính toán tổng số món ăn trong mỗi đơn hàng
+      for (const order of orders) {
+        if (!order.orderDetails) {
+          console.log(`Warning: Order ${order.id} has no orderDetails`);
+          (order as any).totalItems = 0;
+          continue;
+        }
+        
+        const totalItems = order.orderDetails.reduce(
+          (sum, detail) => sum + detail.quantity,
+          0
+        );
+        (order as any).totalItems = totalItems;
+        
+        // Kiểm tra dish trong mỗi orderDetail
+        for (const detail of order.orderDetails) {
+          if (!detail.dish) {
+            console.log(`Warning: OrderDetail ${detail.id} for Order ${order.id} has no dish information`);
+          }
+        }
+      }
+      
+      return [orders, count];
+    } catch (error) {
+      console.error('Error fetching user orders:', error.message);
+      throw error;
+    }
   }
 
   async getRestaurantOrders(restaurantId: number, page: number = 0, limit: number = 10): Promise<[Order[], number]> {
