@@ -296,7 +296,6 @@ export class OrderController {
     description: 'Trạng thái đơn hàng đã được cập nhật',
     type: Order 
   })
-  @Roles(RoleType.ADMIN, RoleType.RESTAURANT)
   async updateOrderStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateOrderStatusDto: UpdateOrderStatusDto,
