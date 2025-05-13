@@ -20,7 +20,7 @@ import { User } from 'src/modules/user/entities/user.entity';
           port: parseInt(config.getOrThrow('DB_PORT'), 10),
           username: config.getOrThrow('DB_USERNAME'),
           password: config.getOrThrow('DB_PASSWORD'),
-          database: config.getOrThrow('DB_DATABASE'),
+          database: config.getOrThrow('DB_NAME'),
           entities: [
             User,
             Order,
