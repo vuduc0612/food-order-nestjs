@@ -81,15 +81,32 @@ export class OrderController {
   @ApiResponse({ 
     status: 200, 
     description: 'Danh sách đơn hàng',
-    type: [Order] 
+    type: OrdersPageResponseDto 
   })
-  @Roles(RoleType.ADMIN)
+  @Roles(RoleType.RESTAURANT)
   async getAllOrders(
     @Query('page') page: number = 0,
     @Query('limit') limit: number = 10
-  ): Promise<{ orders: Order[], total: number }> {
+  ) {
+    console.log(`Controller: getAllOrders called with page=${page}, limit=${limit}`);
+    
     const [orders, total] = await this.orderService.getAllOrders(page, limit);
-    return { orders, total };
+    console.log(`Received ${orders.length} orders from service, total: ${total}`);
+    
+    // Chuyển đổi orders sang dạng DTO
+    const enhancedOrders = orders.map(order => this.mapOrderToResponse(order));
+    
+    const response = { 
+      content: enhancedOrders, 
+      total,
+      page,
+      size: limit,
+      totalPages: Math.ceil(total / limit)
+    };
+    
+    console.log(`Returning response with ${enhancedOrders.length} orders, totalPages: ${Math.ceil(total / limit)}`);
+    
+    return response;
   }
 
   @Get('my-orders')
@@ -154,14 +171,16 @@ export class OrderController {
   @ApiResponse({ 
     status: 200, 
     description: 'Danh sách đơn hàng của nhà hàng',
-    type: [Order] 
+    type: OrdersPageResponseDto 
   })
   @Roles(RoleType.RESTAURANT)
   async getRestaurantOrders(
     @Req() req,
     @Query('page') page: number = 0,
     @Query('limit') limit: number = 10
-  ): Promise<{ orders: Order[], total: number }> {
+  ) {
+    console.log(`Controller: getRestaurantOrders called with page=${page}, limit=${limit}`);
+    
     // Lấy nhà hàng của user hiện tại
     const restaurant = await this.restaurantRepository.findOne({
       where: { accountId: req.user.id }
@@ -171,8 +190,25 @@ export class OrderController {
       throw new BadRequestException('User is not associated with any restaurant');
     }
     
+    console.log(`Found restaurant ID: ${restaurant.id} for account ID: ${req.user.id}`);
+    
     const [orders, total] = await this.orderService.getRestaurantOrders(restaurant.id, page, limit);
-    return { orders, total };
+    console.log(`Received ${orders.length} orders from service, total: ${total}`);
+    
+    // Chuyển đổi orders sang dạng DTO
+    const enhancedOrders = orders.map(order => this.mapOrderToResponse(order));
+    
+    const response = { 
+      content: enhancedOrders, 
+      total,
+      page,
+      size: limit,
+      totalPages: Math.ceil(total / limit)
+    };
+    
+    console.log(`Returning response with ${enhancedOrders.length} orders, totalPages: ${Math.ceil(total / limit)}`);
+    
+    return response;
   }
 
   @Get(':id')
