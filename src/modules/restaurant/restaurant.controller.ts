@@ -11,6 +11,8 @@ import {
   UploadedFile,
   Req,
   Body,
+  Query,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { RestaurantService } from './restaurant.service';
 import { AuthGuard } from '../auth/guard/auth.guard';
@@ -25,11 +27,12 @@ import {
   ApiBody,
   ApiConsumes,
   ApiResponse,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from 'src/base/cloudinary/cloudinary.service';
 import * as Multer from 'multer';
-import { UpdateRestaurantDto, RestaurantResponseDto } from './restaurant.dto';
+import { UpdateRestaurantDto, RestaurantResponseDto, RestaurantDetailResponseDto, RestaurantPageDto } from './restaurant.dto';
 import { Public } from '../auth/decorator/public.decorator';
 
 @ApiTags('Restaurants')
@@ -41,6 +44,42 @@ export class RestaurantController {
     private readonly restaurantService: RestaurantService,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
+
+  @Public()
+  @Get()
+  @ApiOperation({
+    summary: 'Lấy danh sách nhà hàng với phân trang và tìm kiếm',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Trang cần lấy (bắt đầu từ 0)',
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'size',
+    required: false,
+    description: 'Số lượng nhà hàng trên mỗi trang',
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Từ khóa tìm kiếm (tìm trong tên, mô tả, địa chỉ)',
+    type: String,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Danh sách nhà hàng phân trang',
+    type: RestaurantPageDto,
+  })
+  async findAll(
+    @Query('page', new DefaultValuePipe(0), ParseIntPipe) page: number,
+    @Query('size', new DefaultValuePipe(10), ParseIntPipe) size: number,
+    @Query('search') search?: string,
+  ) {
+    return this.restaurantService.findAll(page, size, search);
+  }
 
   @Get('profile')
   @ApiOperation({
@@ -57,6 +96,22 @@ export class RestaurantController {
     return this.restaurantService.getCurrentRestaurant(req.user.id);
   }
 
+  @Public()
+  @Get('detail/:id')
+  @ApiOperation({
+    summary: 'Lấy thông tin chi tiết nhà hàng bao gồm danh mục và món ăn',
+  })
+  @ApiParam({ name: 'id', description: 'ID của nhà hàng' })
+  @ApiResponse({
+    status: 200,
+    description: 'Chi tiết thông tin nhà hàng, danh mục và món ăn',
+    type: RestaurantDetailResponseDto,
+  })
+  async getRestaurantDetail(@Param('id', ParseIntPipe) id: number) {
+    return this.restaurantService.getRestaurantDetail(id);
+  }
+  
+  @Public()
   @Get(':id')
   @ApiOperation({
     summary: 'Lấy thông tin nhà hàng theo ID cùng danh sách món ăn',
@@ -67,7 +122,6 @@ export class RestaurantController {
     description: 'Thông tin nhà hàng và danh sách món ăn',
     type: RestaurantResponseDto,
   })
-  @Roles(RoleType.RESTAURANT)
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.restaurantService.getRestaurantWithDishes(id);
   }
