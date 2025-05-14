@@ -21,6 +21,7 @@ import { Account } from './modules/account/entities/account.entities';
 import { CartModule } from './modules/cart/cart.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
+import { StatisticsModule } from './modules/statistics/statistics.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { redisStore } from 'cache-manager-redis-yet';
     OrderDetailModule,
     RestaurantModule,
     UserModule,
+    StatisticsModule,
     QueueModule,
   ],
   controllers: [AppController],

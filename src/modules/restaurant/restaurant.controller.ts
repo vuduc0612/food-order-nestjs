@@ -12,6 +12,7 @@ import {
   Req,
   Body,
   Query,
+  Post,
 } from '@nestjs/common';
 import { RestaurantService } from './restaurant.service';
 import { AuthGuard } from '../auth/guard/auth.guard';
@@ -31,7 +32,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from 'src/base/cloudinary/cloudinary.service';
 import * as Multer from 'multer';
-import { UpdateRestaurantDto, RestaurantResponseDto } from './restaurant.dto';
+import { UpdateRestaurantDto, RestaurantResponseDto, CreateRestaurantDto } from './restaurant.dto';
 import { Public } from '../auth/decorator/public.decorator';
 
 @ApiTags('Restaurants')
@@ -138,6 +139,12 @@ export class RestaurantController {
     required: false,
     type: Number,
   })
+  @ApiQuery({
+    name: 'keyword',
+    description: 'Từ khóa tìm kiếm',
+    required: false,
+    type: String,
+  })
   @ApiResponse({
     status: 200,
     description: 'Danh sách nhà hàng',
@@ -146,8 +153,145 @@ export class RestaurantController {
   async findAll(
     @Query('page') page: number = 0,
     @Query('limit') limit: number = 10,
+    @Query('keyword') keyword: string = '',
   ) {
-    return this.restaurantService.getAllRestaurants(page, limit);
+    return this.restaurantService.getAllRestaurants(page, limit, keyword);
+  }
+
+  @Public()
+  @Post()
+  @ApiOperation({ summary: 'Tạo mới nhà hàng' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Nhà hàng ABC' },
+        description: { type: 'string', example: 'Nhà hàng ngon nhất Hà Nội' },
+        address: { type: 'string', example: '123 Đường ABC, Hà Nội' },
+        phone: { type: 'string', example: '0987654321' },
+        email: { type: 'string', example: 'restaurant@example.com' },
+        restaurantType: { type: 'string', example: 'Asian' },
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'File ảnh',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Nhà hàng đã được tạo thành công',
+    type: RestaurantResponseDto,
+  })
+  @UseInterceptors(FileInterceptor('image'))
+  async create(
+    @Body() createRestaurantDto: CreateRestaurantDto,
+    @UploadedFile() file: Multer.File,
+  ) {
+    // Tạo nhà hàng mới với dữ liệu đã được chuyển đổi
+    const newRestaurant = await this.restaurantService.create(createRestaurantDto);
+    
+    // Nếu có file ảnh
+    if (file) {
+      try {
+        const cloudinaryResponse = await this.cloudinaryService.uploadImage(file);
+        const imageUrl = cloudinaryResponse.secure_url;
+        await this.restaurantService.updateImage(newRestaurant.id, imageUrl);
+      } catch (error) {
+        throw new BadRequestException(`Không thể tải lên ảnh: ${error.message}`);
+      }
+    }
+
+    // Trả về thông tin nhà hàng vừa tạo
+    return this.restaurantService.getRestaurantWithDishes(newRestaurant.id);
+  }
+
+  @Public()
+  @Patch('public/:id')
+  @ApiOperation({ summary: 'Cập nhật thông tin nhà hàng (public endpoint)' })
+  @ApiParam({ name: 'id', description: 'ID của nhà hàng' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Nhà hàng ABC' },
+        description: { type: 'string', example: 'Nhà hàng ngon nhất Hà Nội' },
+        address: { type: 'string', example: '123 Đường ABC, Hà Nội' },
+        phone: { type: 'string', example: '0987654321' },
+        restaurantType: { type: 'string', example: 'Asian' },
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'File ảnh',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Thông tin nhà hàng sau khi cập nhật',
+    type: RestaurantResponseDto,
+  })
+  @UseInterceptors(FileInterceptor('image'))
+  async updatePublic(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateRestaurantDto: UpdateRestaurantDto,
+    @UploadedFile() file: Multer.File,
+  ) {
+    const restaurant = await this.restaurantService.findById(id);
+    
+    // Cập nhật thông tin
+    let updatedRestaurant = restaurant;
+
+    // Xử lý restaurantType nếu có
+    if (updateRestaurantDto.restaurantType) {
+      updateRestaurantDto.type = updateRestaurantDto.restaurantType;
+      delete updateRestaurantDto.restaurantType;
+    }
+
+    // Nếu có dữ liệu cập nhật
+    if (Object.keys(updateRestaurantDto).length > 0) {
+      updatedRestaurant = await this.restaurantService.update(
+        id,
+        updateRestaurantDto,
+      );
+    }
+
+    // Nếu có file ảnh
+    if (file) {
+      try {
+        const cloudinaryResponse =
+          await this.cloudinaryService.uploadImage(file);
+        const imageUrl = cloudinaryResponse.secure_url;
+        updatedRestaurant = await this.restaurantService.updateImage(
+          id,
+          imageUrl,
+        );
+      } catch (error) {
+        throw new BadRequestException(
+          `Không thể tải lên ảnh: ${error.message}`,
+        );
+      }
+    }
+
+    // Lấy dữ liệu đầy đủ của nhà hàng (bao gồm danh sách món ăn)
+    return this.restaurantService.getRestaurantWithDishes(id);
+  }
+
+  @Public()
+  @Delete('public/:id')
+  @ApiOperation({ summary: 'Xóa nhà hàng (public endpoint)' })
+  @ApiParam({ name: 'id', description: 'ID của nhà hàng' })
+  @ApiResponse({
+    status: 200,
+    description: 'Nhà hàng đã được xóa thành công',
+  })
+  async removePublic(@Param('id', ParseIntPipe) id: number) {
+    await this.restaurantService.removePublic(id);
+    return { message: 'Nhà hàng đã được xóa thành công' };
   }
 
   @Public()

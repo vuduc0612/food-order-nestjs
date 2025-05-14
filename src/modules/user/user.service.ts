@@ -84,14 +84,70 @@ export class UserService {
       );
     }
 
+    return this.mapToUserDto(user);
+  }
+
+  async create(fullName: string, phone: string, address: string, accountId: number): Promise<User> {
+    const account = await this.accountRepository.findOne({ where: { id: accountId } });
+    if (!account) {
+      throw new NotFoundException(`Account with ID ${accountId} not found`);
+    }
+
+    const newUser = this.userRepository.create({
+      fullName,
+      phone,
+      address,
+      accountId,
+    });
+
+    return this.userRepository.save(newUser);
+  }
+
+  async removePublic(id: number): Promise<void> {
+    const user = await this.findById(id);
+    await this.userRepository.remove(user);
+  }
+
+  // Hàm tiện ích để map từ entity sang DTO
+  mapToUserDto(user: User): UserResponseDto {
     return {
       id: user.id,
-      account_id: user.account.id,
+      account_id: user.account?.id,
       full_name: user.fullName,
       phone: user.phone,
       address: user.address,
       avatar: user.avatar,
-      email: user.account.email,
+      email: user.account?.email,
+      username: user.account?.email?.split('@')[0], // Mặc định lấy phần trước @ làm username
+      isActive: user.account?.is_verified,
+      createdAt: user.account?.created_at,
+    };
+  }
+
+  // Hàm lấy danh sách tất cả người dùng cho admin dashboard
+  async findAll(page: number = 0, limit: number = 10): Promise<{
+    items: UserResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const skip = page * limit;
+    const [users, total] = await this.userRepository.findAndCount({
+      skip,
+      take: limit,
+      relations: ['account'],
+      order: {
+        id: 'DESC',
+      },
+    });
+
+    const userDtos = users.map(user => this.mapToUserDto(user));
+
+    return {
+      items: userDtos,
+      total,
+      page,
+      limit,
     };
   }
 }

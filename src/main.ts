@@ -42,12 +42,18 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
 
+  // Cấu hình CORS - cho phép gọi từ React Admin dashboard
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: ['http://localhost:3000', process.env.CORS_ORIGIN || '*'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type,Authorization,Accept',
+    allowedHeaders: 'Content-Type,Authorization,Accept,Origin,X-Requested-With',
     credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+    maxAge: 3600,
   });
+
+  console.log('CORS enabled for origins:', ['http://localhost:3000', process.env.CORS_ORIGIN || '*']);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -75,5 +81,6 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`🚀 Server đang chạy tại http://localhost:${port}`);
   console.log(`📚 Swagger UI đang chạy tại http://localhost:${port}/api`);
+  console.log(`🔌 CORS đã được bật cho React Admin Dashboard`);
 }
 bootstrap();
